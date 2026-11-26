@@ -73,7 +73,7 @@ def rules(files, body):
     if bare:
         found.append(("Text without `T()`", "User-facing text comes in Korean and English, `T(\"한국어\", \"English\")`. "
                       "If you don't write Korean, put the English in both and say so. " + "; ".join(bare[:5]) + (" …" if len(bare) > 5 else "")))
-    if src and "selftest.py" not in files:
+    if any(code(l).strip() and not l.lstrip().startswith("//") for ls in src.values() for l in ls) and "selftest.py" not in files:   # code, not just comments
         found.append(("No self-test change", "`Sources/` changed but `selftest.py` didn't. If the change can be checked from the CLI, please add a check."))
     reads = sorted({p for p, ls in src.items() if p in ("Sources/Sessions.swift", "Sources/Terminal.swift") or any(READS.search(code(l)) for l in ls)})
     if reads and not PRIVACY_NOTE.search(body or ""):

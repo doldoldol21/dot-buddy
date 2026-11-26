@@ -29,6 +29,7 @@ check("text without T() is flagged, with T() it isn't",
        "Text without `T()`" in titles(diff(("Sources/Pet.swift", ['say(T("다 했어!", "All done!"), now)']), ("selftest.py", ["x"])))), (True, False))
 check("a source change without a self-test change",
       titles(diff(("Sources/Draw.swift", ['let x = 1']))), ["No self-test change"])
+check("a comment-only change needs no self-test", titles(diff(("Sources/Scene.swift", ['// Finding the floor: screen bottom first']))), [])
 check("reading transcripts needs a privacy note, and the note clears it",
       ("Privacy or security note" in titles(diff(("Sources/Sessions.swift", ['let x = 1']), ("selftest.py", ["x"]))),
        "Privacy or security note" in titles(diff(("Sources/Sessions.swift", ['let x = 1']), ("selftest.py", ["x"])), "Privacy: reads nothing new"),
