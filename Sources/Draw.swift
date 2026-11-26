@@ -4,13 +4,18 @@ import CoreText
 import ServiceManagement
 
 // ---------- Time-of-day props ----------
-/// Nightcap (on the head, a striped cone drooping backward with a white pom-pom) and a morning mug (beside the front paw, steam rising). Characters with a flame or leaf on top of the head do not wear the cap
+/// Nightcap (on the head, a striped cone drooping backward with a white pom-pom), a Santa hat in December (the same shape in red,
+/// worn all day instead of the nightcap) and a morning mug (beside the front paw, steam rising). Characters with a flame or
+/// leaf on top of the head do not wear a cap
 func drawProps(_ cv: inout Canvas, _ ch: Chara, _ p: Pose, _ cx0: Int) {
   let id = ch.id.replacingOccurrences(of: "pack:", with: ""), d = p.look < 0 ? -1 : 1, cx = cx0 + p.shake
-  if p.nightcap, !["candle", "sprout"].contains(id), ch.kind != .candle, ch.kind != .sprout {
-    let hy = cv.top + 1, b = -d                                                       // The cone droops away from the facing direction
-    let band = rgba("#f4f1ea"), c1 = rgba("#5b7fd6"), c2 = rgba("#8fb0f0"), pom = rgba("#ffffff")
-    let line = rgba("#34407a")
+  if p.nightcap || p.santa, !["candle", "sprout"].contains(id), ch.kind != .candle, ch.kind != .sprout {
+    // The head: the first row with 4 solid dots in a row near the middle, so steam, a stem or a wisp doesn't hold the cap up in the air
+    let solid = { (y: Int) -> Bool in var run = 0; for x in max(0, cx - 8)...min(CW - 1, cx + 8) { if cv.alpha(x, y) >= 0xf0 { run += 1; if run >= 4 { return true } } else { run = 0 } }; return false }
+    let head = ch.sprite != nil ? ((cv.top..<GY).first(where: solid) ?? cv.top) : cv.top
+    let hy = head + 1, b = -d                                                         // The cone droops away from the facing direction
+    let band = rgba("#f4f1ea"), pom = rgba("#ffffff")
+    let (c1, c2, line) = p.santa ? (rgba("#d8383b"), rgba("#ee5a50"), rgba("#7a1d24")) : (rgba("#5b7fd6"), rgba("#8fb0f0"), rgba("#34407a"))
     for x in -5...5 { cv.set(cx + x, hy, band); cv.set(cx + x, hy + 1, band) }                  // White band (two rows)
     let rows: [(Int, ClosedRange<Int>)] = [(1, -4...4), (2, -3...4), (3, -1...5), (4, 1...6), (5, 4...7)]
     for (j, r) in rows { for x in r { cv.set(cx + x * b, hy - j, x == r.lowerBound || j == 5 ? line : ((x + j) % 3 == 0 ? c2 : c1)) } }   // The striped cone droops backward
@@ -118,6 +123,7 @@ struct Pose: Hashable {
   var motion = "", frame = 0                         // Pack character: the motion sprite to use and its frame index
   var sink = 0                                       // Rows sunk below the floor (nothing is drawn below the floor)
   var nightcap = false, mug = -1                     // Time-of-day props: nightcap (night / sleeping) and mug (morning, steam beat 0 or 1)
+  var santa = false                                  // Seasonal: Santa hat (December, see christmasSeason)
   var fx = 0, fxK = 0.0                              // Character effect: 1 error, 2 done; fxK is progress 0 to 1
   var icon = 0, iconBob = 0                          // Icon above the head: 1 light bulb (flash of insight), 2 question mark (head tilt)
 }

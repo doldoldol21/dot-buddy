@@ -104,6 +104,8 @@ struct Ctx {
   var who = "Claude"                    // agent name of the waiting sessions (that name if all are the same, 'agent' if mixed)
   var hour = Calendar.current.component(.hour, from: Date()), minute = Calendar.current.component(.minute, from: Date())
   var weekday = Calendar.current.component(.weekday, from: Date())   // 1 Sunday … 7 Saturday
+  var month = Calendar.current.component(.month, from: Date()), day = Calendar.current.component(.day, from: Date())
+  var seasonal = SEASONAL               // seasonal lines (December, New Year) unless turned off in the menu
 }
 /// Mutterings that show each character's personality (mixed in when idle)
 let CHARA_LINES: [String: [String]] = [
@@ -142,7 +144,19 @@ func timeLines(_ x: Ctx) -> [String] {
   if weekend && x.hour >= 9 && x.hour < 18 { a += T(["주말인데 일해?", "주말엔 쉬자~"], ["Working on a weekend?", "Weekends are for naps~"]) }
   if x.weekday == 6 && x.hour >= 17 { a += T(["불금이다!", "주말이다!"], ["TGIF!", "Weekend mode: on!"]) }
   if x.weekday == 2 && x.hour >= 9 && x.hour < 12 { a += T(["월요병…", "월요일 힘내자…"], ["Case of the Mondays...", "We can do Monday..."]) }
+  if x.seasonal { a += seasonLines(x) }
   return a
+}
+/// Seasonal mutterings: Christmas in December, the last day of the year, New Year's Day
+func seasonLines(_ x: Ctx) -> [String] {
+  switch (x.month, x.day) {
+  case (12, 24): return T(["오늘은 크리스마스 이브!", "산타 할아버지 오시려나?", "양말 걸어 둬야지~", "착하게 지냈지?"], ["It's Christmas Eve!", "Is Santa on his way?", "Time to hang the stockings~", "Have you been good this year?"])
+  case (12, 25): return T(["메리 크리스마스!", "선물 받았어?", "크리스마스에도 일하는 거야?", "케이크 먹자~"], ["Merry Christmas!", "Got any presents?", "Working on Christmas?", "Cake time~"])
+  case (12, 31): return T(["올해 마지막 날이야!", "올해도 수고 많았어", "내년에도 같이 하자~"], ["Last day of the year!", "You did great this year", "Let's do next year together~"])
+  case (1, 1): return T(["새해 복 많이 받아!", "올해도 잘 부탁해~", "새해 목표 세웠어?"], ["Happy New Year!", "Here's to a great year~", "Any New Year's resolutions?"])
+  case (12, 1...23): return T(["모자 어때? 잘 어울려?", "크리스마스가 다가온다~", "눈 왔으면 좋겠다", "캐럴 듣고 싶어", "산타 모자 따뜻해"], ["Like my hat?", "Christmas is coming~", "I hope it snows", "Feels like carol season", "This Santa hat is cozy"])
+  default: return []
+  }
 }
 var LAST_LINES: [String] = []
 /// Praise — when many Claude sessions run at once (sessions) or friends (agents) are called one after another (agents). record: today's best record

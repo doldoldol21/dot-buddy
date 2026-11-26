@@ -123,7 +123,7 @@ final class Pet: NSObject, NSMenuDelegate {
   var away = false, lastIdleCheck = 0.0, grabT = 0.0, carriedSaid = false, awayDone = 0
   var climbFrom: CGFloat?, climbRestAt = CGFloat.infinity, climbRestUntil = 0.0, nextGoal: String?, nextGoalDive = true
   var nextFollow = 0.0, lastFidgetQ = false, lastHourSaid = -1
-  var propHour = -1, propHourAt = -99.0
+  var propHour = -1, propHourAt = -99.0, santaOn = false
   var clicks: [Double] = [], poutNext = false, caught = false, touchUntil = 0.0, gest: Chat?, gestT0 = 0.0, errs: [Double] = [], fx = 0, fxT0 = -99.0
   var days: Int {                                                          // Day number since the day we first met (first day = 1)
     let d0 = UD.double(forKey: "firstDay")
@@ -1608,7 +1608,11 @@ final class Pet: NSObject, NSMenuDelegate {
       }
     }
     if t - fxT0 < 2.5 { p.fx = fx; p.fxK = (t - fxT0) / 2.5 }                     // Character effects (error rain, completion flowers, etc.)
-    if t - propHourAt > 30 { propHourAt = t; propHour = Calendar.current.component(.hour, from: Date()) }   // Re-read the time only every 30 seconds
+    if t - propHourAt > 30 {                                                        // Re-read the time only every 30 seconds
+      propHourAt = t; let now = Calendar.current.dateComponents([.hour, .month, .day], from: Date())
+      propHour = now.hour ?? 0; santaOn = SEASONAL && christmasSeason(month: now.month ?? 0, day: now.day ?? 0)
+    }
+    p.santa = santaOn                                                               // December: a Santa hat all day (it replaces the nightcap)
     switch act { case .sleep, .yawn: p.nightcap = true; default: p.nightcap = (propHour >= 22 || propHour < 6) && floor != nil }   // Sleep cap at night (not drawn in mid-air, as if it came off)
     if propHour >= 7 && propHour < 10, floor != nil { switch act { case .stand, .work, .hum, .cheer: p.mug = Int(t / 0.5) % 2; default: break } }   // Coffee beside it in the morning
     if t < touchUntil && t >= pettedUntil { p.eyes = .closed; p.blush = true; p.look = NSEvent.mouseLocation.x > pos.x ? 1 : -1 }   // Leans in when touched
@@ -2134,6 +2138,8 @@ final class Pet: NSObject, NSMenuDelegate {
     sub(T("말풍선 글자: \(cur(texts, noticeScale))", "Bubble Text: \(cur(texts, noticeScale))"), texts.map { ($0.0, noticeScale == $0.1, #selector(setNoticeScale(_:)), $0.1) })
     let langs: [(String, String)] = [(T("시스템 따라", "System"), ""), ("한국어", "ko"), ("English", "en")], langNow = UD.string(forKey: "lang") ?? ""
     sub(T("언어", "Language") + ": \(cur(langs, langNow))", langs.map { ($0.0, langNow == $0.1, #selector(setLang(_:)), $0.1) })
+    let season = NSMenuItem(title: T("계절 꾸미기 (12월 산타 모자 등)", "Seasonal Touches (a Santa hat in December…)"), action: #selector(toggleSeasonal), keyEquivalent: "")
+    season.target = self; season.state = SEASONAL ? .on : .off; menu.addItem(season)
     menu.addItem(.separator())
     if let u = availableUpdate, BUILD_KIND == "release" {
       let it = NSMenuItem(title: T("업데이트 \(u.version) 설치", "Install Update \(u.version)"), action: #selector(installUpdateNow), keyEquivalent: ""); it.target = self; menu.addItem(it)
@@ -2275,6 +2281,7 @@ final class Pet: NSObject, NSMenuDelegate {
       }
     }
   }
+  @objc func toggleSeasonal() { UD.set(!SEASONAL, forKey: "seasonal"); propHourAt = -99 }   // the hat comes or goes on the next frame
   @objc func toggleAutoUpdate() {
     let on = !UD.bool(forKey: "autoUpdate"); UD.set(on, forKey: "autoUpdate")
     if on { UD.set(0, forKey: "lastUpdateCheck") }

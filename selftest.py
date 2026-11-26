@@ -276,6 +276,9 @@ cases = [("idle", "hour=12", "weekday=3"), ("idle", "hour=23", "weekday=6"), ("i
 leaks = sorted({l for c in cases for l in en_lines(*c) if hangul.search(l)})
 check("영어 — 한글 안 섞임", leaks, [])
 check("영어 — 문구가 나옴", all(en_lines(*c) for c in cases), True)
+xmas = re.compile("Christmas|presents|Cake")
+check("계절 — 크리스마스·새해에만, 끄면 안 나옴", (any(xmas.search(l) for l in en_lines("idle", "date=12-25", "hour=15")), any(xmas.search(l) for l in en_lines("idle", "date=12-25", "hour=15", "seasonal=0")),
+      any(xmas.search(l) for l in en_lines("idle", "date=7-1", "hour=15")), any("New Year" in l for l in en_lines("idle", "date=1-1", "hour=15"))), (True, False, False, True))
 
 # community characters (the client side; the pack rules are tested in dot-buddy/characters): installing from the list works,
 # and a file that doesn't match the list, an id with a path in it, or a folder the user made themselves is refused.
