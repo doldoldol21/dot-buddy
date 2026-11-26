@@ -309,6 +309,11 @@ with tempfile.TemporaryDirectory() as td:
     mine = os.path.join(td, "c3"); os.makedirs(os.path.join(mine, ids[0]))
     rc3, _ = community(base, mine, "--community-install", ids[0])
     check("커뮤니티 — 안 맞는 파일·경로 id·내 폴더는 거절", (rc2, os.path.exists(os.path.join(td, "c2", ids[0])), "../escape" in listed, rc3, os.listdir(os.path.join(mine, ids[0]))), (1, False, False, 1, []))
+    lk = os.path.join(td, "likes"); shutil.copytree(FIXTURE, lk); li = json.load(open(os.path.join(lk, "index.json")))
+    li["packs"][0].update(likes=5, discussion="https://example.com/discussions/1"); li["packs"].append(dict(li["packs"][0], id="liked", likes=2, discussion="https://github.com/dot-buddy/characters/discussions/7"))
+    json.dump(li, open(os.path.join(lk, "index.json"), "w"))
+    got = {p["id"]: (p["likes"], p["discussion"]) for p in json.loads(community("file://" + lk + "/", os.path.join(td, "c4"), "--community-list")[1])}
+    check("커뮤니티 — 좋아요 수와 GitHub 토론 링크만", (got[ids[0]], got["liked"]), ((5, ""), (2, "https://github.com/dot-buddy/characters/discussions/7")))
     rr, _ = community(base, mine, "--community-remove", ids[0])                         # Remove: never a folder the user made
     r4, out4 = community(base, ch, "--community-remove", ids[0])
     st4 = [p["state"] for p in json.loads(community(base, ch, "--community-list")[1]) if p["id"] == ids[0]]

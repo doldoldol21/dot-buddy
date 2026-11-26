@@ -25,6 +25,7 @@ struct CommunityPack {
   let files: [CommunityFile], preview: String?
   var basedOn = ""                                                                // Fan art: the original character and series (the original belongs to its owner)
   var added = ""                                                                  // YYYY-MM-DD the pack first appeared in the list
+  var likes = 0, discussion = ""                                                  // People who liked it (❤️/👍 on its GitHub discussion, counted daily by CI) and that discussion
   /// Added in the last two weeks
   var isNew: Bool {
     let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(identifier: "UTC")
@@ -93,7 +94,9 @@ func communityIndex() -> Result<[CommunityPack], CommunityError> {
       let preview = (p["preview"] as? String).flatMap { $0 == "preview.gif" ? $0 : nil }
       out.append(CommunityPack(id: id, name: str("name").isEmpty ? id : String(str("name").prefix(40)), names: (p["names"] as? [String: String] ?? [:]).mapValues { String($0.prefix(40)) },
                                author: String(str("author").prefix(39)), license: String(str("license").prefix(20)), description: String(str("description").prefix(140)), files: files, preview: preview,
-                               basedOn: String(str("based_on").prefix(60)), added: str("added").count == 10 ? str("added") : ""))
+                               basedOn: String(str("based_on").prefix(60)), added: str("added").count == 10 ? str("added") : "",
+                               likes: max(0, min(p["likes"] as? Int ?? 0, 999_999)),
+                               discussion: str("discussion").hasPrefix("https://github.com/\(COMMUNITY_REPO)/discussions/") ? str("discussion") : ""))
     }
     return .success(out.enumerated().sorted { ($0.element.added, -$0.offset) > ($1.element.added, -$1.offset) }.map(\.element))   // newest first, like the gallery
   }
@@ -267,7 +270,7 @@ func installDroppedChara(_ src: URL, dir: URL = CHARAS_DIR) -> Result<(String, S
 // ---------- The window ----------
 final class CommunityWindow: NSObject, NSWindowDelegate {
   let window: NSWindow
-  private let stack = NSStackView(), status = NSTextField(labelWithString: "")
+  private let stack = NSStackView(), status = NSTextField(labelWithString: ""), sort = NSPopUpButton()
   private var packs: [CommunityPack] = []
   private var busy = false
   private let onInstalled: (String, String) -> Void                          // (character id, shown name)
@@ -287,7 +290,10 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
       let b = NSButton(title: "", target: self, action: action); b.isBordered = false
       b.attributedTitle = NSAttributedString(string: title, attributes: [.foregroundColor: NSColor.linkColor, .font: NSFont.systemFont(ofSize: 12)]); return b
     }
-    let link = NSStackView(views: [linkButton(T("갤러리에서 보기 →", "Browse the gallery →"), #selector(openGallery)), linkButton(T("내 캐릭터 올리는 법 →", "How to share your character →"), #selector(openGuide))])
+    sort.addItems(withTitles: [T("최신순", "Newest"), T("인기순", "Most liked")]); sort.controlSize = .small; sort.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+    sort.selectItem(at: UD.integer(forKey: "communitySort") == 1 ? 1 : 0); sort.target = self; sort.action = #selector(resort)
+    let gap = NSView(); gap.setContentHuggingPriority(.init(1), for: .horizontal)
+    let link = NSStackView(views: [linkButton(T("갤러리에서 보기 →", "Browse the gallery →"), #selector(openGallery)), linkButton(T("내 캐릭터 올리는 법 →", "How to share your character →"), #selector(openGuide)), gap, sort])
     link.orientation = .horizontal; link.spacing = 16
     stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 0
     let doc = FlippedView(); doc.translatesAutoresizingMaskIntoConstraints = false; doc.addSubview(stack)
@@ -297,7 +303,7 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
     let root = NSView(); [head, link, scroll, status].forEach { $0.translatesAutoresizingMaskIntoConstraints = false; root.addSubview($0) }
     NSLayoutConstraint.activate([
       head.topAnchor.constraint(equalTo: root.topAnchor, constant: 14), head.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 16), head.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -16),
-      link.topAnchor.constraint(equalTo: head.bottomAnchor, constant: 4), link.leadingAnchor.constraint(equalTo: head.leadingAnchor),
+      link.topAnchor.constraint(equalTo: head.bottomAnchor, constant: 4), link.leadingAnchor.constraint(equalTo: head.leadingAnchor), link.trailingAnchor.constraint(equalTo: head.trailingAnchor),
       scroll.topAnchor.constraint(equalTo: link.bottomAnchor, constant: 10), scroll.leadingAnchor.constraint(equalTo: root.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: root.trailingAnchor),
       status.topAnchor.constraint(equalTo: scroll.bottomAnchor, constant: 8), status.leadingAnchor.constraint(equalTo: head.leadingAnchor), status.trailingAnchor.constraint(equalTo: head.trailingAnchor),
       status.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -10),
@@ -329,9 +335,15 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
       }
     }
   }
+  @objc func resort() { UD.set(sort.indexOfSelectedItem, forKey: "communitySort"); rebuild() }
+  @objc func openLike(_ b: NSButton) {
+    guard let id = b.identifier?.rawValue, let p = packs.first(where: { $0.id == id }), let u = URL(string: p.discussion) else { return }
+    NSWorkspace.shared.open(u)
+  }
   private func rebuild() {
     stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-    for (i, p) in packs.enumerated() {
+    let shown = sort.indexOfSelectedItem == 1 ? packs.enumerated().sorted { ($0.element.likes, -$0.offset) > ($1.element.likes, -$1.offset) }.map(\.element) : packs   // the list comes newest first
+    for (i, p) in shown.enumerated() {
       if i > 0 { let sep = NSBox(); sep.boxType = .separator; stack.addArrangedSubview(sep); sep.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true }
       let row = self.row(p); stack.addArrangedSubview(row); row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
     }
@@ -345,11 +357,17 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
       }
     }
     let title = NSTextField(labelWithString: p.shownName); title.font = .boldSystemFont(ofSize: 13)
-    let name: NSView
+    var nameRow: [NSView] = [title]
     if p.isNew {
-      let tag = NSTextField(labelWithString: T("새로", "New")); tag.font = .systemFont(ofSize: 10, weight: .semibold); tag.textColor = .controlAccentColor
-      let n = NSStackView(views: [title, tag]); n.orientation = .horizontal; n.spacing = 6; n.alignment = .firstBaseline; name = n
-    } else { name = title }
+      let tag = NSTextField(labelWithString: T("새로", "New")); tag.font = .systemFont(ofSize: 10, weight: .semibold); tag.textColor = .controlAccentColor; nameRow.append(tag)
+    }
+    if !p.discussion.isEmpty {                                                         // ♥ count; clicking it opens the discussion to like it on GitHub
+      let like = NSButton(title: "", target: self, action: #selector(openLike(_:))); like.isBordered = false; like.identifier = NSUserInterfaceItemIdentifier(p.id)
+      like.attributedTitle = NSAttributedString(string: "♥ \(p.likes)", attributes: [.foregroundColor: NSColor.secondaryLabelColor, .font: NSFont.systemFont(ofSize: 11)])
+      like.toolTip = T("GitHub에서 좋아요 누르기 (❤️ 또는 👍)", "Like it on GitHub (❤️ or 👍)"); nameRow.append(like)
+    }
+    let n = NSStackView(views: nameRow); n.orientation = .horizontal; n.spacing = 6; n.alignment = .firstBaseline
+    let name: NSView = n
     let by = NSTextField(wrappingLabelWithString: [p.author.isEmpty ? "" : T("그린 사람 \(p.author)", "by \(p.author)"), p.license, p.basedOn.isEmpty ? "" : T("팬아트 · 원작 \(p.basedOn)", "Fan art of \(p.basedOn)")].filter { !$0.isEmpty }.joined(separator: " · "))
     by.font = .systemFont(ofSize: 11); by.textColor = .secondaryLabelColor
     let desc = NSTextField(wrappingLabelWithString: p.description); desc.font = .systemFont(ofSize: 12)
