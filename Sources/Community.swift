@@ -7,9 +7,11 @@
 import AppKit
 import CryptoKit
 
+let COMMUNITY_REPO = "dot-buddy/characters"
+let COMMUNITY_SITE = "https://dot-buddy.github.io/characters/"
 let COMMUNITY_BASE: String = {
   let e = ProcessInfo.processInfo.environment["DOTBUDDY_COMMUNITY_BASE"] ?? ""   // tests point this at a local folder (file://…/community/)
-  let b = e.isEmpty ? "https://raw.githubusercontent.com/dot-buddy/characters/main/packs/" : e   // (before 0.3.17: community/ in this repo, since removed)
+  let b = e.isEmpty ? "https://raw.githubusercontent.com/\(COMMUNITY_REPO)/main/packs/" : e   // (before 0.3.17: community/ in this repo, since removed)
   return b.hasSuffix("/") ? b : b + "/"
 }()
 /// Limits for a downloaded pack. Real packs are a few KB per file
@@ -22,6 +24,13 @@ struct CommunityPack {
   let id: String, name: String, names: [String: String], author: String, license: String, description: String
   let files: [CommunityFile], preview: String?
   var basedOn = ""                                                                // Fan art: the original character and series (the original belongs to its owner)
+  var added = ""                                                                  // YYYY-MM-DD the pack first appeared in the list
+  /// Added in the last two weeks
+  var isNew: Bool {
+    let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(identifier: "UTC")
+    guard let d = f.date(from: added) else { return false }
+    return Date().timeIntervalSince(d) < 14 * 86400
+  }
   var shownName: String { names[LANG.rawValue] ?? names["en"] ?? name }
   /// One value for "which version of this pack": changes whenever any file changes
   var digest: String { SHA256.hash(data: Data(files.map { "\($0.name):\($0.sha256)" }.joined(separator: "\n").utf8)).map { String(format: "%02x", $0) }.joined() }
@@ -82,9 +91,9 @@ func communityIndex() -> Result<[CommunityPack], CommunityError> {
       let preview = (p["preview"] as? String).flatMap { $0 == "preview.gif" ? $0 : nil }
       out.append(CommunityPack(id: id, name: str("name").isEmpty ? id : String(str("name").prefix(40)), names: (p["names"] as? [String: String] ?? [:]).mapValues { String($0.prefix(40)) },
                                author: String(str("author").prefix(39)), license: String(str("license").prefix(20)), description: String(str("description").prefix(140)), files: files, preview: preview,
-                               basedOn: String(str("based_on").prefix(60))))
+                               basedOn: String(str("based_on").prefix(60)), added: str("added").count == 10 ? str("added") : ""))
     }
-    return .success(out)
+    return .success(out.enumerated().sorted { ($0.element.added, -$0.offset) > ($1.element.added, -$1.offset) }.map(\.element))   // newest first, like the gallery
   }
 }
 
@@ -258,8 +267,12 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
     let head = NSTextField(wrappingLabelWithString: T("사람들이 그려서 올린 캐릭터예요. 받으면 캐릭터 메뉴에 바로 생겨요. 내 캐릭터를 올리는 방법은 아래 링크에 있어요.",
                                                      "Characters people drew and shared. Install one and it shows up in the Character menu right away. To share yours, see the link below."))
     head.font = .systemFont(ofSize: 12); head.textColor = .secondaryLabelColor
-    let link = NSButton(title: "", target: self, action: #selector(openGuide)); link.isBordered = false
-    link.attributedTitle = NSAttributedString(string: T("내 캐릭터 올리는 법 →", "How to share your character →"), attributes: [.foregroundColor: NSColor.linkColor, .font: NSFont.systemFont(ofSize: 12)])
+    let linkButton = { (title: String, action: Selector) -> NSButton in
+      let b = NSButton(title: "", target: self, action: action); b.isBordered = false
+      b.attributedTitle = NSAttributedString(string: title, attributes: [.foregroundColor: NSColor.linkColor, .font: NSFont.systemFont(ofSize: 12)]); return b
+    }
+    let link = NSStackView(views: [linkButton(T("갤러리에서 보기 →", "Browse the gallery →"), #selector(openGallery)), linkButton(T("내 캐릭터 올리는 법 →", "How to share your character →"), #selector(openGuide))])
+    link.orientation = .horizontal; link.spacing = 16
     stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 0
     let doc = FlippedView(); doc.translatesAutoresizingMaskIntoConstraints = false; doc.addSubview(stack)
     stack.translatesAutoresizingMaskIntoConstraints = false
@@ -284,7 +297,8 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
     load()
   }
   func windowWillClose(_ n: Notification) { onClose?() }
-  @objc func openGuide() { NSWorkspace.shared.open(URL(string: "https://github.com/\(UPDATE_REPO)/tree/main/community#readme")!) }
+  @objc func openGuide() { NSWorkspace.shared.open(URL(string: "https://github.com/\(COMMUNITY_REPO)/blob/main/" + T("README.ko.md", "README.md"))!) }
+  @objc func openGallery() { NSWorkspace.shared.open(URL(string: COMMUNITY_SITE + T("ko/", ""))!) }
 
   private func load() {
     status.stringValue = T("목록 받는 중…", "Loading the list…")
@@ -314,7 +328,12 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
         if case .success(let d) = communityGet(u, max: 1 << 20), let im = NSImage(data: d) { DispatchQueue.main.async { img.image = im } }
       }
     }
-    let name = NSTextField(labelWithString: p.shownName); name.font = .boldSystemFont(ofSize: 13)
+    let title = NSTextField(labelWithString: p.shownName); title.font = .boldSystemFont(ofSize: 13)
+    let name: NSView
+    if p.isNew {
+      let tag = NSTextField(labelWithString: T("새로", "New")); tag.font = .systemFont(ofSize: 10, weight: .semibold); tag.textColor = .controlAccentColor
+      let n = NSStackView(views: [title, tag]); n.orientation = .horizontal; n.spacing = 6; n.alignment = .firstBaseline; name = n
+    } else { name = title }
     let by = NSTextField(wrappingLabelWithString: [p.author.isEmpty ? "" : T("그린 사람 \(p.author)", "by \(p.author)"), p.license, p.basedOn.isEmpty ? "" : T("팬아트 · 원작 \(p.basedOn)", "Fan art of \(p.basedOn)")].filter { !$0.isEmpty }.joined(separator: " · "))
     by.font = .systemFont(ofSize: 11); by.textColor = .secondaryLabelColor
     let desc = NSTextField(wrappingLabelWithString: p.description); desc.font = .systemFont(ofSize: 12)

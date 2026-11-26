@@ -23,6 +23,17 @@ jobs:
       - name: Self-test
         run: python3 selftest.py
 
+      # The community characters in dot-buddy/characters must still pass its checks and load in this build
+      - uses: actions/checkout@v7
+        with:
+          repository: dot-buddy/characters
+          path: .characters
+      - name: Community characters still load
+        env:
+          DOTBUDDY_SRC: ${{ github.workspace }}
+          PACKS_ROOT: ${{ github.workspace }}/.characters
+        run: python3 .characters/scripts/packs.py check --app bin/DotBuddy
+
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
