@@ -9,7 +9,7 @@ import CryptoKit
 
 let COMMUNITY_BASE: String = {
   let e = ProcessInfo.processInfo.environment["DOTBUDDY_COMMUNITY_BASE"] ?? ""   // tests point this at a local folder (file://…/community/)
-  let b = e.isEmpty ? "https://raw.githubusercontent.com/dot-buddy/characters/main/packs/" : e   // (before 0.3.17: community/ in this repo, kept frozen for those versions)
+  let b = e.isEmpty ? "https://raw.githubusercontent.com/dot-buddy/characters/main/packs/" : e   // (before 0.3.17: community/ in this repo, since removed)
   return b.hasSuffix("/") ? b : b + "/"
 }()
 /// Limits for a downloaded pack. Real packs are a few KB per file
