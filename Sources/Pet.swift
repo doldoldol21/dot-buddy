@@ -536,7 +536,7 @@ final class Pet: NSObject, NSMenuDelegate {
   /// (it had already jumped elsewhere) and it seemed to show up seconds later (2026-11-23)
   var graceUntil = 0.0, graceID = "", occlScanAt = 0.0, graceScanned = false
   func coverGrace(_ o: Floor) -> Bool {
-    guard o.kind == .window, !screenLocked, now - spaceChangedAt > 2, scene.walls.contains(o.rect) else { graceUntil = 0; return false }   // Only if the window itself is still there unmoved (moved, closed or minimized are handled elsewhere)
+    guard o.kind == .window, !screenLocked, now - spaceChangedAt > 2, now - landUntil > 1, scene.walls.contains(o.rect) else { graceUntil = 0; return false }   // Just landed on a spot that turns out covered: nothing to wait for, get out now (it stayed hidden 3.6s, 2026-11-26)   // Only if the window itself is still there unmoved (moved, closed or minimized are handled elsewhere)
     switch act { case .stand, .walk, .work, .cheer, .hum, .sleep, .react, .roll, .follow, .yawn, .stretch, .sitEdge, .peek, .stroll: break; default: return false }
     if graceUntil == 0 || graceID != o.id {                                          // A new cover (an expired wait on this same floor stays expired until it is seen again)
       graceUntil = now + Pet.COVER_WAIT; graceID = o.id; graceScanned = false
@@ -1448,12 +1448,16 @@ final class Pet: NSObject, NSMenuDelegate {
     let dead = { (x: CGFloat) in self.scene.walls.contains { b in
       b != w && b.minX < x && b.maxX > x && b.maxY >= y - 4 * self.scale && b.minY < y && !self.floors.contains { $0.x0 <= x && $0.x1 >= x && abs($0.y - b.maxY) < 3 } } }
     let canL = lo < w.minX && !dead(w.minX - halfW), canR = hi > w.maxX && !dead(w.maxX + halfW)   // Is it open beyond the end of that top edge
+    let dir: CGFloat
     switch (canL, canR) {
-    case (true, true): return pos.x < w.midX ? -1 : 1
-    case (true, false): return -1
-    case (false, true): return 1
+    case (true, true): dir = pos.x < w.midX ? -1 : 1
+    case (true, false): dir = -1
+    case (false, true): dir = 1
     default: return nil
     }
+    // Thrown and the end is far: drop in front of the window instead. Along a 3360pt monitor's top it slid for 5 seconds under the menu bar (2026-11-26)
+    if handFall && (dir < 0 ? pos.x - w.minX : w.maxX - pos.x) > 600 { return nil }
+    return dir
   }
   /// Does it fall into a window (the body center newly enters inside a window); the pet is behind all windows, so it disappears when it enters
   func wallHit(_ w: CGRect, from a: CGPoint, to b: CGPoint) -> Bool {
