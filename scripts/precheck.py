@@ -127,7 +127,7 @@ def comment(found, scope):
     lines = [MARK, "### Pre-check", ""]
     if scope and scope[0] == "no":
         found = [("Scope", "A small model read this and thinks it may be outside [What Dot Buddy is for](https://github.com/doldoldol21/dot-buddy/blob/main/CONTRIBUTING.md#what-dot-buddy-is-for)"
-                  + (f": _{scope[1]}_" if scope[1] else "") + ". A maintainer will decide; if it's a misread, a sentence in the description helps.")] + found
+                  + (f": _{scope[1].rstrip('.')}_" if scope[1] else "") + ". A maintainer will decide; if it's a misread, a sentence in the description helps.")] + found
     if not found:
         lines.append("Nothing to flag against [CONTRIBUTING.md](https://github.com/doldoldol21/dot-buddy/blob/main/CONTRIBUTING.md). Thanks!")
     else:
