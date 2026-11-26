@@ -17,6 +17,7 @@ These six come with the app, so there's nothing to install. They're drawn in cod
 |---|---|---|---|
 | <img src="ghost/preview.gif" width="220" alt="Ghost"> | **Ghost**<br>A friendly little ghost whose hem sways as it floats along. | [@doldoldol21](https://github.com/doldoldol21) | CC-BY-4.0 |
 | <img src="onigiri/preview.gif" width="220" alt="Rice Ball"> | **Rice Ball**<br>A rice ball in a seaweed wrap, ready for a long day of coding. | [@doldoldol21](https://github.com/doldoldol21) | CC-BY-4.0 |
+| <img src="onion/preview.gif" width="220" alt="Onion"> | **Onion**<br>A rosy onion with a fresh green sprout and a sunny little smile. | [@GaneshUbale](https://github.com/GaneshUbale) | CC-BY-4.0 |
 | <img src="snowman/preview.gif" width="220" alt="Snowman"> | **Snowman**<br>A snowman with a red scarf and a carrot nose. | [@doldoldol21](https://github.com/doldoldol21) | CC-BY-4.0 |
 | <img src="teacup/preview.gif" width="220" alt="Teacup"> | **Teacup**<br>A little teacup that steams while it waits. | [@doldoldol21](https://github.com/doldoldol21) | CC-BY-4.0 |
 <!-- gallery:end -->
