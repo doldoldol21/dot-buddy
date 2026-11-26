@@ -21,6 +21,7 @@ struct CommunityFile { let name: String, sha256: String, size: Int }
 struct CommunityPack {
   let id: String, name: String, names: [String: String], author: String, license: String, description: String
   let files: [CommunityFile], preview: String?
+  var basedOn = ""                                                                // Fan art: the original character and series (the original belongs to its owner)
   var shownName: String { names[LANG.rawValue] ?? names["en"] ?? name }
   /// One value for "which version of this pack": changes whenever any file changes
   var digest: String { SHA256.hash(data: Data(files.map { "\($0.name):\($0.sha256)" }.joined(separator: "\n").utf8)).map { String(format: "%02x", $0) }.joined() }
@@ -80,7 +81,8 @@ func communityIndex() -> Result<[CommunityPack], CommunityError> {
       let str = { (k: String) in (p[k] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines) }
       let preview = (p["preview"] as? String).flatMap { $0 == "preview.gif" ? $0 : nil }
       out.append(CommunityPack(id: id, name: str("name").isEmpty ? id : String(str("name").prefix(40)), names: (p["names"] as? [String: String] ?? [:]).mapValues { String($0.prefix(40)) },
-                               author: String(str("author").prefix(39)), license: String(str("license").prefix(20)), description: String(str("description").prefix(140)), files: files, preview: preview))
+                               author: String(str("author").prefix(39)), license: String(str("license").prefix(20)), description: String(str("description").prefix(140)), files: files, preview: preview,
+                               basedOn: String(str("based_on").prefix(60))))
     }
     return .success(out)
   }
@@ -313,7 +315,7 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
       }
     }
     let name = NSTextField(labelWithString: p.shownName); name.font = .boldSystemFont(ofSize: 13)
-    let by = NSTextField(labelWithString: [p.author.isEmpty ? "" : T("그린 사람 \(p.author)", "by \(p.author)"), p.license].filter { !$0.isEmpty }.joined(separator: " · "))
+    let by = NSTextField(wrappingLabelWithString: [p.author.isEmpty ? "" : T("그린 사람 \(p.author)", "by \(p.author)"), p.license, p.basedOn.isEmpty ? "" : T("팬아트 · 원작 \(p.basedOn)", "Fan art of \(p.basedOn)")].filter { !$0.isEmpty }.joined(separator: " · "))
     by.font = .systemFont(ofSize: 11); by.textColor = .secondaryLabelColor
     let desc = NSTextField(wrappingLabelWithString: p.description); desc.font = .systemFont(ofSize: 12)
     let state = communityState(p)
@@ -329,7 +331,7 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
     img.widthAnchor.constraint(equalToConstant: 96).isActive = true; img.heightAnchor.constraint(equalToConstant: 64).isActive = true
     text.setContentHuggingPriority(.defaultLow, for: .horizontal); text.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
     btn.setContentHuggingPriority(.required, for: .horizontal); img.setContentHuggingPriority(.required, for: .horizontal)
-    desc.preferredMaxLayoutWidth = 240
+    desc.preferredMaxLayoutWidth = 240; by.preferredMaxLayoutWidth = 240                 // (a fan-art line makes it long)
     return h
   }
   @objc func install(_ b: NSButton) {

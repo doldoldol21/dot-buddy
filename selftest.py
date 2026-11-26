@@ -345,6 +345,15 @@ with tempfile.TemporaryDirectory() as td:
     check("받은 캐릭터 설치 — 캐릭터 없는 zip·밖을 가리키는 경로는 거절", (r4[0], r5[0], os.path.exists(os.path.join(td, "evil.png")), sorted(os.listdir(ch))),
           (1, 1, False, ["blob.png", "buddy"]))
 
+# community pack rules: the same outline recolored is caught, different packs aren't; the motions people see most are required
+with tempfile.TemporaryDirectory() as td:
+    cp = os.path.join(td, ids[0] + "-copy"); shutil.copytree(os.path.join(HERE, "community", ids[0]), cp)
+    shapes = {i: cm.idle_shape(os.path.join(HERE, "community", i)) for i in ids}
+    os.remove(os.path.join(cp, "walk.png"))
+    errs = cm.check_pack(cp, set(cm.motions()))
+    check("커뮤니티 규칙 — 같은 윤곽·기본 동작", (cm.same_shape(shapes[ids[0]], cm.idle_shape(cp)), any(cm.same_shape(shapes[x], shapes[y]) for x in ids for y in ids if x < y),
+          all(shapes.values()), any("walk.png" in e for e in errs)), (True, False, True, True))
+
 if fails:
     print("FAIL\n  " + "\n  ".join(fails))
     sys.exit(1)

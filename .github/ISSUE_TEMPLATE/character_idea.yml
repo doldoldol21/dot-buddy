@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Original ideas only: no characters from games, anime, films, brands or other people's art.
+        Fan art ideas are fine too: say which character and series it's based on.
         Drawing it yourself? See [community/README.md](https://github.com/doldoldol21/dot-buddy/blob/main/community/README.md#share-your-character).
   - type: textarea
     id: idea

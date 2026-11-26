@@ -23,10 +23,10 @@ These six come with the app, so there's nothing to install. They're drawn in cod
 
 ## Share your character
 
-1. Draw a character pack as described in [CHARACTERS.md](../CHARACTERS.md). Only `idle.png` is required; every motion you add makes it livelier.
+1. Draw a character pack as described in [CHARACTERS.md](../CHARACTERS.md). The gallery needs at least `idle`, `walk`, `work`, `sleep`, `ask` and `fall` (or `jump`); every motion you add makes it livelier.
 2. Try it in the app: put the folder in your characters folder and choose **Reload Characters**.
-3. Fork this repo and add the folder as `community/<name>/`. The name is 2–32 characters of `a-z`, `0-9` and `-`, and can't be a built-in character's name.
-4. Open a pull request. CI checks the pack and loads it in the app. After the merge, CI draws the preview, adds it to the gallery and the in-app list.
+3. Fork this repo and add the folder as `community/<name>/`. The name is 2–32 characters of `a-z`, `0-9` and `-`, and can't be a built-in character's name. One character per pull request, and nothing outside its folder.
+4. Open a pull request. CI checks the pack, loads it in the app and attaches its preview (the `previews` artifact on the run). After the merge, CI draws the preview, adds it to the gallery and the in-app list.
 
 ### chara.json
 
@@ -42,15 +42,20 @@ On top of the [usual keys](../CHARACTERS.md#charajson), a community pack needs t
 }
 ```
 
+Fan art also adds `"based_on": "Character (Series)"`.
+
 | Key | Meaning |
 |---|---|
 | `author` | Your GitHub username (shown as "by …" and linked in the gallery) |
 | `license` | The license for your drawings: `CC-BY-4.0`, `CC-BY-SA-4.0`, `CC0-1.0` or `MIT` |
 | `description` | One short line, at most 140 characters (optional) |
+| `based_on` | Fan art only: the character and series it's based on, at most 60 characters. Shown as "Fan art of …" |
 
 ### Rules
 
-- **Your own drawing only.** No characters from games, anime, films, brands or other people's art, and no fan art of them, even redrawn. Packs that look like an existing character are closed.
+- **Draw it yourself.** Don't copy other people's sprites or art, and don't recolor another pack (CI compares outlines).
+- **Fan art is welcome** if you drew it and fill in `based_on`. The original character belongs to its owner; your `license` covers only your drawing.
+- Only you can change your pack: CI checks that `author` is the GitHub account opening the pull request.
 - Only `chara.json` and `<motion>.png` files (motion names are in [CHARACTERS.md](../CHARACTERS.md#motion-names)). No other files.
 - Frames are at most 30×32 dots, every motion uses the same frame size, at most 16 frames per motion.
 - Each file is at most 64 KB and the pack at most 512 KB. Pixel art is usually far smaller.
@@ -64,6 +69,10 @@ python3 scripts/community.py check --app bin/DotBuddy # also load it in the app 
 ```
 
 No drawing skills? Open a [character idea](https://github.com/doldoldol21/dot-buddy/issues/new?template=character_idea.yml) and someone may pick it up.
+
+## Removing a character
+
+We can't judge copyright for every character, so packs are taken down on request. If a pack uses your character or art, or breaks the rules above, [report it](https://github.com/doldoldol21/dot-buddy/issues/new?template=report_character.yml) and a maintainer will check and remove it from the gallery and the in-app list. Copies people already installed stay on their Macs. Authors can ask to remove their own pack the same way.
 
 ## How installing works
 
