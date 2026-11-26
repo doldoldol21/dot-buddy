@@ -1,0 +1,56 @@
+name: Pre-check
+
+# Read a pull request against CONTRIBUTING.md and leave one comment with what to look at (scripts/precheck.py):
+# plain rules, then a small open model run on this runner with Ollama for the scope (no API key, nothing leaves the runner).
+# pull_request_target so it can comment on pull requests from forks. It runs the base branch's script and reads the
+# pull request only through the API (its diff, title and description); the pull request's code is never checked out or run.
+# Findings are hints: this job doesn't fail because of them.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: precheck-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  precheck:
+    if: github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Read the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          gh api "repos/$REPO/pulls/$PR" -H "Accept: application/vnd.github.diff" > "$RUNNER_TEMP/pr.diff"
+          printf '%s' "$BODY" > "$RUNNER_TEMP/body.md"
+          wc -l < "$RUNNER_TEMP/pr.diff"
+
+      - name: Small local model
+        continue-on-error: true
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh > /dev/null
+          (ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &)
+          sleep 5
+          ollama pull gemma3:4b > /dev/null
+
+      - name: Pre-check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: python3 -I scripts/precheck.py --diff "$RUNNER_TEMP/pr.diff" --title "$TITLE" --body-file "$RUNNER_TEMP/body.md" --model gemma3:4b --post

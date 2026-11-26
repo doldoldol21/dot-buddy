@@ -76,6 +76,7 @@ Everything is plain Swift and AppKit compiled with `swiftc`. There is no Xcode p
 | `Sources/Demo.swift` | The README demo GIFs (`--demo-gif`), drawn offscreen, and community previews (`chara:<id>`) |
 | `Sources/Community.swift` | Community characters: the list, downloading and checking a pack, the More Characters window |
 | `scripts/sign-update.swift` | Signs a release zip in CI |
+| `scripts/precheck.py`, `tests/test_precheck.py` | The pull request pre-check comment and its rule tests |
 | `tests/fixtures/community/` | One pack and its index entry, for the self-test of downloading community characters. The packs themselves and their checks live in [dot-buddy/characters](https://github.com/dot-buddy/characters) |
 | `charas/chars.py`, `charas/pix.py` | Generator for the six built-in high-res character packs |
 | `build.sh` | Build, font download, app bundle, ad-hoc signing. It installs to `~/Applications` unless you pass `APP=…`, so use `APP=/tmp/Dot.app ./build.sh` while you have a release build installed |
@@ -108,6 +109,7 @@ Original characters are welcome. The easiest way to share one is a pack in [dot-
 - Keep each pull request to one change, and describe what a user will notice.
 - Run `python3 selftest.py` before you push.
 - Changes to what the app reads or runs (session files, transcripts, `tools.json` commands) need a note on the privacy or security impact.
+- A bot comment points out anything that looks off against this guide (network access, AI calls, text without `T()`, a missing self-test or privacy note, and whether the change fits the scope). It's a hint, not a blocker; the scope part is a small model and can be wrong.
 - By contributing you agree that your work is released under the [MIT License](LICENSE).
 
 ## Releasing (maintainers)
