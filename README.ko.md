@@ -50,7 +50,7 @@
 
   에이전트마다 내 명령으로 바꿀 수도 있어요([설정](#설정) 참고).
 - **캐릭터.** 오리지널 도트 캐릭터 여섯(만두, 도토리, 새싹 화분, 구름, 촛불, 이끼돌)이 있고, 캐릭터마다 혼잣말과 효과가 달라요. 직접 그려 넣을 수도 있고, 남이 보내 준 캐릭터(zip, 폴더, PNG)는 펫 위에 끌어 놓으면 바로 깔려요. [CHARACTERS.ko.md](CHARACTERS.ko.md)를 보세요.
-- **커뮤니티 캐릭터.** 다른 사람이 그린 캐릭터를 메뉴(캐릭터 → **다른 캐릭터 받기…**)에서 바로 받고, 내 캐릭터는 풀 리퀘스트로 올려요. [community/](community/README.ko.md)를 보세요.
+- **커뮤니티 캐릭터.** 다른 사람이 그린 캐릭터를 메뉴(캐릭터 → **다른 캐릭터 받기…**)에서 바로 받고, [갤러리](https://dot-buddy.github.io/characters/ko/)에서 둘러볼 수도 있어요. 내 캐릭터는 [dot-buddy/characters](https://github.com/dot-buddy/characters/blob/main/README.ko.md)에 풀 리퀘스트로 올려요.
 - **Codex 펫.** Codex 앱용 펫(`pet.json` + 8×9 스프라이트 시트)을 `~/.codex/pets/` 에서 그대로 불러와요. 내려받은 Codex 펫 zip 은 풀지 말고 그대로 펫 위에 끌어 놓으면 돼요.
 - **두 언어.** 시스템 언어를 따르고, 메뉴에서 한국어와 영어를 바꿀 수 있어요.
 
@@ -158,7 +158,7 @@ Codex CLI, Gemini CLI, Cursor, opencode, Aider 설정은 [docs/agents.md](docs/a
 
 <p align="center"><img src="docs/media/characters.gif" alt="기본 캐릭터 여섯: 만두·도토리·새싹 화분·구름·촛불·이끼돌" width="720"></p>
 
-다른 사람이 그린 캐릭터는 오른쪽 클릭 → 캐릭터 → **다른 캐릭터 받기…** 에서 받아요([갤러리](community/README.md#gallery)).
+다른 사람이 그린 캐릭터는 오른쪽 클릭 → 캐릭터 → **다른 캐릭터 받기…** 에서 받아요([갤러리](https://dot-buddy.github.io/characters/ko/), 받은 zip 은 펫에 끌어다 놓아도 돼요).
 
 직접 만들려면 `~/Library/Application Support/DotBuddy/charas/` 에 PNG 를 넣고(오른쪽 클릭 → 캐릭터 → 캐릭터 폴더 열기) **캐릭터 다시 불러오기**를 누르면 돼요. 그림 한 장이면 충분하고, 움직임은 앱이 만들어요. 동작마다 직접 그려 넣을 수도 있어요. 여기에 넣은 Codex 펫도 불러와요.
 

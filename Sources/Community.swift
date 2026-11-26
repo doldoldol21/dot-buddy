@@ -1,4 +1,4 @@
-// Community characters: packs people share under community/ in the GitHub repo, listed in community/index.json.
+// Community characters: packs people share in github.com/dot-buddy/characters, listed in packs/index.json there.
 //
 // Nothing here runs until you open "More Characters…" (or use --community-list / --community-install). Then the app reads
 // the index from raw.githubusercontent.com, shows each pack with its preview, and on Install downloads only the files the
@@ -9,7 +9,7 @@ import CryptoKit
 
 let COMMUNITY_BASE: String = {
   let e = ProcessInfo.processInfo.environment["DOTBUDDY_COMMUNITY_BASE"] ?? ""   // tests point this at a local folder (file://…/community/)
-  let b = e.isEmpty ? "https://raw.githubusercontent.com/\(UPDATE_REPO)/main/community/" : e
+  let b = e.isEmpty ? "https://raw.githubusercontent.com/dot-buddy/characters/main/packs/" : e   // (before 0.3.17: community/ in this repo, kept frozen for those versions)
   return b.hasSuffix("/") ? b : b + "/"
 }()
 /// Limits for a downloaded pack. Real packs are a few KB per file

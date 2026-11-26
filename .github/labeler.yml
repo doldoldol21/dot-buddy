@@ -1,9 +1,5 @@
 # Labels added to pull requests by the files they change (.github/workflows/labeler.yml).
 # The labels also sort the release notes (.github/release.yml).
-character:
-  - changed-files:
-      - any-glob-to-any-file: community/**
-
 agent-integration:
   - changed-files:
       - any-glob-to-any-file: [Sources/Sessions.swift, Sources/Terminal.swift, docs/agents.md]

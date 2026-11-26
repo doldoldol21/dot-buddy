@@ -31,7 +31,7 @@ Neither path runs commands. Local processes running as you are already trusted a
 
 **Automation permission.** To focus a tab in Terminal or iTerm2, Dot Buddy sends AppleScript to that app, and macOS asks you for permission the first time.
 
-**Community characters.** **More Characters…** reads `community/index.json` from this repo on raw.githubusercontent.com. Installing a pack downloads only the files the index lists for it, each limited to `chara.json` or a `<motion>.png` name and 256 KB, checks every file's size and SHA-256 against the index, writes them to a new folder inside the character folder, and keeps the pack only if the normal loader reads it. A pack never replaces a folder you created yourself. Packs are reviewed before they're merged, but they are not signed: the trust is "whatever is on `main`". A way to make an install write outside the character folder, or to get code to run from a pack, is a vulnerability.
+**Community characters.** **More Characters…** reads `packs/index.json` from [dot-buddy/characters](https://github.com/dot-buddy/characters) on raw.githubusercontent.com (versions before 0.3.17 read `community/index.json` from this repo). Installing a pack downloads only the files the index lists for it, each limited to `chara.json` or a `<motion>.png` name and 256 KB, checks every file's size and SHA-256 against the index, writes them to a new folder inside the character folder, and keeps the pack only if the normal loader reads it. A pack never replaces a folder you created yourself. Packs are reviewed before they're merged, but they are not signed: the trust is "whatever is on `main`". A way to make an install write outside the character folder, or to get code to run from a pack, is a vulnerability.
 
 ## Release builds
 

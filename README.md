@@ -54,7 +54,7 @@ Clicking the pet marks everything as seen. A finished session keeps its "done" s
 
   You can replace this with your own command per agent (see [Configuration](#configuration)).
 - **Characters.** Six original pixel characters (Dumpling, Acorn, Sprout, Cloud, Candle, Pebble), each with its own lines and effects. Draw your own, or drop a character someone sent you (a zip, folder or PNG) on the pet to install it: see [CHARACTERS.md](CHARACTERS.md).
-- **Community characters.** Install characters other people drew from the menu (Character → **More Characters…**), and share yours with a pull request: see [community/](community/README.md).
+- **Community characters.** Install characters other people drew from the menu (Character → **More Characters…**), or browse the [gallery](https://dot-buddy.github.io/characters/), and share yours with a pull request to [dot-buddy/characters](https://github.com/dot-buddy/characters).
 - **Codex pets.** Pets made for the Codex app (`pet.json` + 8×9 spritesheet) load as-is from `~/.codex/pets/`. A downloaded Codex pet zip works too: drop it on the pet without unzipping.
 - **Bilingual.** Follows the system language; switch between English and Korean from the menu.
 
@@ -162,11 +162,11 @@ DOTBUDDY=dotbuddy   # or the full path inside the app
 
 <p align="center"><img src="docs/media/characters.gif" alt="The six built-in characters: Dumpling, Acorn, Sprout, Cloud, Candle and Pebble" width="720"></p>
 
-Get characters other people drew from right-click → Character → **More Characters…** ([gallery](community/README.md#gallery)).
+Get characters other people drew from right-click → Character → **More Characters…** ([gallery](https://dot-buddy.github.io/characters/); a downloaded zip can be dropped on the pet too).
 
 To make your own, drop PNGs into `~/Library/Application Support/DotBuddy/charas/` (right-click → Character → **Open Characters Folder**) and choose **Reload Characters**. A single image is enough; the app animates it. Draw per-motion frames to go further. Codex pets placed there load too.
 
-The full guide, with every motion name and the `chara.json` format, is in [CHARACTERS.md](CHARACTERS.md). Made something you like? [Share it](community/README.md#share-your-character) so others can install it from the app.
+The full guide, with every motion name and the `chara.json` format, is in [CHARACTERS.md](CHARACTERS.md). Made something you like? [Share it](https://github.com/dot-buddy/characters#share-your-character) so others can install it from the app.
 
 ## Configuration
 

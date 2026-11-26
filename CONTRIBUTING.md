@@ -76,7 +76,7 @@ Everything is plain Swift and AppKit compiled with `swiftc`. There is no Xcode p
 | `Sources/Demo.swift` | The README demo GIFs (`--demo-gif`), drawn offscreen, and community previews (`chara:<id>`) |
 | `Sources/Community.swift` | Community characters: the list, downloading and checking a pack, the More Characters window |
 | `scripts/sign-update.swift` | Signs a release zip in CI |
-| `scripts/community.py`, `community/` | Community character packs: checks, previews, `index.json` and the gallery (CI runs it) |
+| `scripts/community.py`, `community/` | Pack checks used by the self-test, and a frozen copy of the packs for app versions before 0.3.17. New characters go to [dot-buddy/characters](https://github.com/dot-buddy/characters) |
 | `charas/chars.py`, `charas/pix.py` | Generator for the six built-in high-res character packs |
 | `build.sh` | Build, font download, app bundle, ad-hoc signing. It installs to `~/Applications` unless you pass `APP=…`, so use `APP=/tmp/Dot.app ./build.sh` while you have a release build installed |
 | `install.sh` | The one-line installer (latest signed release, no Gatekeeper prompt) |
@@ -101,7 +101,7 @@ let lines = T(["안녕", "반가워"], ["hi", "hey there"])   // the two lists c
 
 Do not submit characters you don't own the rights to: no characters from games, anime, films, brands or other people's art. Keep those in your own character folder (`~/Library/Application Support/DotBuddy/charas/`); the app only reads that folder and never sends it anywhere.
 
-Original characters are welcome. The easiest way to share one is a community pack: add `community/<name>/` as described in [community/README.md](community/README.md#share-your-character). It shows up in everyone's **More Characters…** list after the merge. The built-in ones are drawn in code by `charas/chars.py`, so a new built-in character is a new class there. See [CHARACTERS.md](CHARACTERS.md).
+Original characters are welcome. The easiest way to share one is a pack in [dot-buddy/characters](https://github.com/dot-buddy/characters): add `packs/<name>/` as described in [its README](https://github.com/dot-buddy/characters#share-your-character). It shows up in everyone's **More Characters…** list after the merge. The built-in ones are drawn in code by `charas/chars.py`, so a new built-in character is a new class there. See [CHARACTERS.md](CHARACTERS.md).
 
 ## Pull requests
 

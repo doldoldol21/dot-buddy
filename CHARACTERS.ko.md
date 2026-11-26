@@ -14,7 +14,7 @@
 
 남이 보내 준 캐릭터(zip, 폴더, PNG 한 장)는 펫 위에 끌어 놓으면 돼요. 이 폴더로 복사하고 그 캐릭터로 바로 바꿔요. 캐릭터가 쓰는 파일(`chara.json`, 동작 PNG, Codex 펫의 `pet.json` 과 시트)만 복사하고 zip 안의 다른 파일은 넣지 않아요. 이름이 같은 캐릭터가 있으면 휴지통으로 보내요. 터미널에서는 `"$DOTBUDDY" --install-chara <zip|폴더|png>` 예요.
 
-다른 사람이 그린 캐릭터는 캐릭터 → **다른 캐릭터 받기…** 에서 바로 받을 수 있어요. 내 캐릭터가 완성되면 같은 곳에 올려 보세요. [community/README.ko.md](community/README.ko.md) 에 방법이 있어요.
+다른 사람이 그린 캐릭터는 캐릭터 → **다른 캐릭터 받기…** 에서 바로 받을 수 있어요. 내 캐릭터가 완성되면 같은 곳에 올려 보세요. [dot-buddy/characters](https://github.com/dot-buddy/characters/blob/main/README.ko.md) 에 방법이 있어요.
 
 ## 두 가지 꼴
 
