@@ -56,6 +56,8 @@ It builds fake session files in a temp folder and checks the session verdicts, `
 
 Please add a check to `selftest.py` when you fix a bug or add behavior that can be tested from the CLI.
 
+CI also launches the built app for real (`tests/smoke.py`): fake sessions only, and it checks from the app's test log that a finished session shows a bubble with its name, the sound and today's count work, and questions and signals get through. The screenshot it takes is kept with the run. A pull request can be merged once this job (**Build and self-test**) passes.
+
 ## Code layout
 
 Everything is plain Swift and AppKit compiled with `swiftc`. There is no Xcode project and no package manager.
@@ -84,6 +86,7 @@ Everything is plain Swift and AppKit compiled with `swiftc`. There is no Xcode p
 | `build.sh` | Build, font download, app bundle, ad-hoc signing. It installs to `~/Applications` unless you pass `APP=…`, so use `APP=/tmp/Dot.app ./build.sh` while you have a release build installed |
 | `install.sh` | The one-line installer (latest signed release, no Gatekeeper prompt) |
 | `selftest.py` | The self-test |
+| `tests/smoke.py` | Launches the app in CI and checks a session finishing end to end |
 
 Adding an agent usually needs no Swift at all: its hooks call `--report` and `--signal` (see [docs/agents.md](docs/agents.md)). A built-in source is a class conforming to `SessionSource` in `Sessions.swift`, added to `makeSources()`. A new terminal for click-to-jump is one entry in `TAB_PICKERS` in `Terminal.swift`.
 
@@ -119,6 +122,6 @@ Original characters are welcome. The easiest way to share one is a pack in [dot-
 
 1. Bump `VERSION` (SemVer) and commit.
 2. Tag and push: `git tag -a v$(cat VERSION) -m "Dot Buddy $(cat VERSION)" && git push origin v$(cat VERSION)`.
-3. CI checks that the tag matches `VERSION`, builds a universal app with `BUILD_KIND=release`, signs the zip with the `UPDATE_SIGNING_KEY` secret (`scripts/sign-update.swift`) and publishes the release with `Dot-Buddy-<version>.zip` and its `.sig`. The notes list the commit subjects since the last tag (`scripts/release-notes.py`), so write subjects a user can read. Installed release builds pick it up through the in-app updater.
+3. CI checks that the tag matches `VERSION`, builds a universal app with `BUILD_KIND=release`, signs the zip with the `UPDATE_SIGNING_KEY` secret (`scripts/sign-update.swift`) and publishes the release with `Dot-Buddy-<version>.zip` and its `.sig`. The notes list the commit subjects since the last tag (`scripts/release-notes.py`), so write subjects a user can read. Open issues labeled `bug` show as a warning on the run and in its summary (the release still goes out). Installed release builds pick it up through the in-app updater.
 
 Never rotate the signing key casually: apps already out there only trust the public key they were built with.

@@ -23,6 +23,18 @@ jobs:
       - name: Self-test
         run: python3 selftest.py
 
+      # Starts the app in the runner's GUI session with fake sessions and checks bubble, sound, count and signals (tests/smoke.py)
+      - name: Launch the app
+        run: python3 -I tests/smoke.py "$RUNNER_TEMP/Dot.app" "$RUNNER_TEMP/smoke.png"
+      - name: Keep the screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-screenshot
+          path: ${{ runner.temp }}/smoke.png
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Pre-check rules
         run: python3 -I tests/test_precheck.py
 
@@ -50,6 +62,7 @@ jobs:
     runs-on: macos-15
     permissions:
       contents: write
+      issues: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -83,6 +96,17 @@ jobs:
           zip="Dot-Buddy-${GITHUB_REF_NAME#v}.zip"
           swift scripts/sign-update.swift "$zip" > "$zip.sig"
           "$RUNNER_TEMP/Dot Buddy.app/Contents/MacOS/DotBuddy" --verify-update "$zip" "$zip.sig"
+
+      # Doesn't stop the release: a warning on the run and a list in its summary, so a known bug isn't shipped by accident
+      - name: Open bug reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          bugs="$(gh issue list -R "$REPO" --label bug --state open --limit 50 --json number,title,url --jq '.[] | "- [#\(.number)](\(.url)) \(.title)"')"
+          if [ -z "$bugs" ]; then echo "no open bug reports"; exit 0; fi
+          echo "::warning title=Open bug reports::$(printf '%s\n' "$bugs" | wc -l | tr -d ' ') open bug report(s); see the run summary"
+          printf '### Open bug reports at release time\n\n%s\n' "$bugs" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish GitHub Release
         env:

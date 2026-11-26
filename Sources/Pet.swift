@@ -391,6 +391,10 @@ final class Pet: NSObject, NSMenuDelegate {
     if !fresh.isEmpty { cheerUntil = now + 2.5; if away { awayDone += fresh.count } }
     if polledOnce, !fresh.isEmpty, !away { fx = 2; fxT0 = now }
     if polledOnce, !fresh.isEmpty, !away, floor != nil, !uninterruptible { act = .react(.party, now, 1.5); if chatty >= 2, noticeSecs == 0 { say(line(.party, ctx), now) } }   // Moment of finishing: two cheers + confetti                                   // Newly finished session: sparkle
+    if polledOnce, !fresh.isEmpty {                                               // Sound (if turned on) and today's count; not for sessions already finished at launch
+      chime(ask: fresh.contains { $0.mood == .ask })
+      countDone(fresh.filter { $0.mood == .wait }.count)
+    }
     if polledOnce && noticeSecs > 0 && !fresh.isEmpty {                           // Don't announce sessions that were already finished when the app started
       let pids = fresh.filter(\.derived).map(\.pid)
       DispatchQueue.global(qos: .utility).async { [weak self] in                   // ps and cmux can be slow, so run them off main
@@ -443,6 +447,7 @@ final class Pet: NSObject, NSMenuDelegate {
     case "done", "ask":
       let n = Notice(pid: 0, id: "signal:\(t)", title: text.isEmpty ? from : String(text.prefix(60)), ask: kind == "ask")
       if noticeSecs > 0 { notices.append(n) }
+      chime(ask: kind == "ask"); if kind == "done" { countDone(1) }
       cheerUntil = t + 2.5; if kind == "done" { fx = 2; fxT0 = t }
       if kind == "ask" { signalAskUntil = t + 120 } else { signalWorkUntil = 0; if floor != nil, !uninterruptible { act = .react(.party, t, 1.5) } }
     case "work": if text == "off" { signalWorkUntil = 0 } else { signalWorkUntil = t + min(3600, max(0, Double(text).flatMap { $0.isFinite ? $0 : nil } ?? 60)) }   // At most one hour (so it is never held forever by 1e308)
@@ -2109,6 +2114,7 @@ final class Pet: NSObject, NSMenuDelegate {
     }
     func cur<T: Equatable>(_ opts: [(String, T)], _ v: T) -> String { opts.first { $0.1 == v }?.0 ?? "" }
     let live = list.filter { $0.mood != .sleep }
+    if doneToday > 0 { menu.addItem(withTitle: T("오늘 끝낸 일 \(doneToday)개", "Finished Today: \(doneToday)"), action: nil, keyEquivalent: "") }
     if !list.isEmpty {                                                             // Sessions: what each is doing; choose one to jump to it
       let count = { (m: Mood) in self.list.filter { $0.mood == m }.count }
       let head = T("세션 \(list.count)개 — 일함 \(count(.work)) · 기다림 \(count(.wait) + count(.ask))", "\(list.count) sessions — \(count(.work)) working · \(count(.wait) + count(.ask)) waiting")
@@ -2142,6 +2148,8 @@ final class Pet: NSObject, NSMenuDelegate {
     sub(T("언어", "Language") + ": \(cur(langs, langNow))", langs.map { ($0.0, langNow == $0.1, #selector(setLang(_:)), $0.1) })
     let season = NSMenuItem(title: T("계절 꾸미기 (12월 산타 모자와 눈 등)", "Seasonal Touches (a Santa hat and snow in December…)"), action: #selector(toggleSeasonal), keyEquivalent: "")
     season.target = self; season.state = SEASONAL ? .on : .off; menu.addItem(season)
+    let snd = NSMenuItem(title: T("끝나면 소리 내기", "Play a Sound When Done"), action: #selector(toggleSound), keyEquivalent: "")
+    snd.target = self; snd.state = soundOn ? .on : .off; menu.addItem(snd)
     menu.addItem(.separator())
     if let u = availableUpdate, BUILD_KIND == "release" {
       let it = NSMenuItem(title: T("업데이트 \(u.version) 설치", "Install Update \(u.version)"), action: #selector(installUpdateNow), keyEquivalent: ""); it.target = self; menu.addItem(it)
@@ -2189,6 +2197,25 @@ final class Pet: NSObject, NSMenuDelegate {
     guard on else { return }
     try? SMAppService.mainApp.register()
     if SMAppService.mainApp.status == .requiresApproval { SMAppService.openSystemSettingsLoginItems() }
+  }
+  // ---------- Sound (off unless turned on in the menu) ----------
+  var soundOn: Bool { UD.bool(forKey: "sound") }
+  var lastSound = -99.0
+  /// A short system sound when a session finishes or asks; one at most every 2 seconds, none while hidden for a while
+  func chime(ask: Bool) {
+    guard soundOn, !snoozed, now - lastSound > 2 else { return }
+    lastSound = now
+    if prof { FileHandle.standardError.write("  sound \(ask ? "ask" : "done") t=\(String(format: "%.2f", now))\n".data(using: .utf8)!) }
+    NSSound(named: ask ? "Tink" : "Glass")?.play()
+  }
+  @objc func toggleSound() { UD.set(!soundOn, forKey: "sound"); lastSound = -99; chime(ask: false) }   // turning it on plays it once so you hear what it sounds like
+  // ---------- Finished today (shown at the top of the menu) ----------
+  var today: Double { Calendar.current.startOfDay(for: Date()).timeIntervalSince1970 }
+  var doneToday: Int { UD.double(forKey: "doneDay") == today ? UD.integer(forKey: "doneToday") : 0 }
+  func countDone(_ n: Int) {
+    guard n > 0 else { return }
+    let c = doneToday; UD.set(today, forKey: "doneDay"); UD.set(c + n, forKey: "doneToday")
+    if prof { FileHandle.standardError.write("  done-today \(c + n)\n".data(using: .utf8)!) }
   }
   // ---------- Hide for a while ----------
   var snoozeUntil = 0.0, snoozed = false
