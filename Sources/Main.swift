@@ -365,6 +365,12 @@ struct Main {
       case .failure(let e): print(describe(e)); exit(1)
       }
     }
+    if a.count >= 3 && a[1] == "--community-remove" {                             // --community-remove <id>: what Remove in More Characters does (to the Trash)
+      switch removeCommunityPack(a[2]) {
+      case .success(let id): print(id); return
+      case .failure(let e): print(describe(e)); exit(1)
+      }
+    }
     if a.count >= 3 && a[1] == "--install-chara" {                                // --install-chara <zip|folder|png>: what dropping it on the pet does
       switch installDroppedChara(URL(fileURLWithPath: a[2])) {
       case .success(let (id, _)): print(id); return

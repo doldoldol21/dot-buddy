@@ -309,6 +309,10 @@ with tempfile.TemporaryDirectory() as td:
     mine = os.path.join(td, "c3"); os.makedirs(os.path.join(mine, ids[0]))
     rc3, _ = community(base, mine, "--community-install", ids[0])
     check("커뮤니티 — 안 맞는 파일·경로 id·내 폴더는 거절", (rc2, os.path.exists(os.path.join(td, "c2", ids[0])), "../escape" in listed, rc3, os.listdir(os.path.join(mine, ids[0]))), (1, False, False, 1, []))
+    rr, _ = community(base, mine, "--community-remove", ids[0])                         # Remove: never a folder the user made
+    r4, out4 = community(base, ch, "--community-remove", ids[0])
+    st4 = [p["state"] for p in json.loads(community(base, ch, "--community-list")[1]) if p["id"] == ids[0]]
+    check("커뮤니티 — 지우기(받은 것만)", (rr, os.path.isdir(os.path.join(mine, ids[0])), r4, out4, os.path.exists(os.path.join(ch, ids[0])), st4), (1, True, 0, "pack:" + ids[0], False, ["notInstalled"]))
 
 # a character someone sent you (--install-chara = dropping it on the pet): only the files the loader reads are copied, a folder
 # with the same name is replaced, a single png works, and a zip without a character or with a path outside it is refused

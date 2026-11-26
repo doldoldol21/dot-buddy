@@ -167,8 +167,8 @@ final class Pet: NSObject, NSMenuDelegate {
   }
   var noticeScale = min(4, max(1, UD.integer(forKey: "textSize2") == 0 ? 2 : UD.integer(forKey: "textSize2"))) { didSet { TEXT_SIZE = noticeScale - 1 } }
   var textDot: CGFloat {                                                       // Size of one speech-bubble dot, rounded to match actual screen pixels
-    let bs = window?.backingScaleFactor ?? 2
-    return max(1 / bs, (scale * TEXT_SIZES[TEXT_SIZE].2 * bs).rounded() / bs)
+    let bs = window?.backingScaleFactor ?? 2                                   // (measured against the Medium pet size, so Size doesn't change Bubble Text)
+    return max(1 / bs, (3 * TEXT_SIZES[TEXT_SIZE].2 * bs).rounded() / bs)
   }
   var humming = false, fallTop = 0.0 as CGFloat
   var fallOwner: String?                                                         // Owner of the level set while falling (not re-set if the same)
@@ -2333,6 +2333,13 @@ final class Pet: NSObject, NSMenuDelegate {
       self.say(T("\(name) 왔어!", "\(name) is here!"), self.now)
     }
     c.onClose = { [weak self] in self?.community = nil }
+    c.onRemoved = { [weak self] id, name in                                         // If it was the one on screen, the first character takes over
+      guard let self else { return }
+      ALL_CHARAS = mergeCharas(loadCustomCharas())
+      guard self.chara.id == id else { return }
+      self.chara = findChara(CHARAS[0].id); UD.set(self.chara.id, forKey: "chara"); self.lastKey = ""; self.resize(); self.cheerUntil = self.now + 1.2
+      self.say(T("\(name) 잘 가~", "Bye, \(name)~"), self.now)
+    }
     community = c; c.show()
   }
   @objc func reloadCharas() {

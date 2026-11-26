@@ -35,12 +35,14 @@ struct CommunityPack {
   /// One value for "which version of this pack": changes whenever any file changes
   var digest: String { SHA256.hash(data: Data(files.map { "\($0.name):\($0.sha256)" }.joined(separator: "\n").utf8)).map { String(format: "%02x", $0) }.joined() }
 }
-enum CommunityError: Error { case network(String), bad(String), exists(String) }
+enum CommunityError: Error { case network(String), bad(String), exists(String), notFromList(String), write(String) }
 func describe(_ e: CommunityError) -> String {
   switch e {
   case .network(let s): return T("인터넷 문제(\(s))", "network problem (\(s))")
   case .bad(let s): return T("받은 캐릭터 파일이 이상해요(\(s))", "the pack looks wrong (\(s))")
   case .exists(let s): return T("캐릭터 폴더에 이미 \(s) 가 있어요(직접 넣은 것 같아요)", "your characters folder already has \(s) (one you added yourself)")
+  case .notFromList(let s): return T("\(s) 는 목록에서 받은 캐릭터가 아니에요(직접 넣은 건 캐릭터 폴더에서 지워 주세요)", "\(s) didn't come from the list (remove your own characters from the characters folder)")
+  case .write(let s): return T("지우지 못했어요(\(s))", "couldn't remove it (\(s))")
   }
 }
 
@@ -104,6 +106,19 @@ func communityState(_ p: CommunityPack, dir: URL = CHARAS_DIR) -> CommunityState
   guard FileManager.default.fileExists(atPath: d.path) else { return .notInstalled }
   guard let m = try? Data(contentsOf: d.appendingPathComponent(COMMUNITY_MARKER)), let j = try? JSONSerialization.jsonObject(with: m) as? [String: Any] else { return .mine }
   return j["digest"] as? String == p.digest ? .installed : .updatable
+}
+
+/// Remove a pack that came from the community list: it goes to the Trash (or is deleted if there is no Trash). A folder the
+/// user made themselves (no marker) is never touched. Returns the character id ("pack:<id>")
+func removeCommunityPack(_ id: String, dir: URL = CHARAS_DIR) -> Result<String, CommunityError> {
+  let fm = FileManager.default, d = dir.appendingPathComponent(id)
+  guard validCommunityID(id) else { return .failure(.bad("id")) }
+  var isDir: ObjCBool = false
+  guard fm.fileExists(atPath: d.path, isDirectory: &isDir), isDir.boolValue, fm.fileExists(atPath: d.appendingPathComponent(COMMUNITY_MARKER).path) else { return .failure(.notFromList(id)) }
+  do { try fm.trashItem(at: d, resultingItemURL: nil) } catch {
+    do { try fm.removeItem(at: d) } catch { return .failure(.write(error.localizedDescription)) }
+  }
+  return .success("pack:" + id)
 }
 
 /// Download one pack into the characters folder (call off the main thread). Returns the character id ("pack:<id>")
@@ -257,10 +272,11 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
   private var busy = false
   private let onInstalled: (String, String) -> Void                          // (character id, shown name)
   var onClose: (() -> Void)?
+  var onRemoved: ((String, String) -> Void)?                                  // (character id, shown name)
 
   init(onInstalled: @escaping (String, String) -> Void) {
     self.onInstalled = onInstalled
-    window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 520), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+    window = ClosableWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 520), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
     super.init()
     window.title = T("다른 캐릭터 받기", "More Characters")
     window.isReleasedWhenClosed = false; window.delegate = self; window.minSize = NSSize(width: 400, height: 300)
@@ -346,12 +362,27 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
     case .mine: btn.title = T("이름 겹침", "Name in use"); btn.isEnabled = false; btn.toolTip = describe(.exists(p.id))
     }
     let text = NSStackView(views: [name, by] + (p.description.isEmpty ? [] : [desc])); text.orientation = .vertical; text.alignment = .leading; text.spacing = 2
-    let h = NSStackView(views: [img, text, btn]); h.orientation = .horizontal; h.alignment = .centerY; h.distribution = .fill; h.spacing = 12; h.edgeInsets = NSEdgeInsets(top: 10, left: 0, bottom: 10, right: 0)
+    var buttons: [NSView] = [btn]
+    if state == .installed || state == .updatable {                                   // Installed from the list: it can be removed again (to the Trash)
+      let rm = NSButton(title: T("지우기", "Remove"), target: self, action: #selector(remove(_:))); rm.bezelStyle = .rounded; rm.controlSize = .small
+      rm.font = .systemFont(ofSize: NSFont.smallSystemFontSize); rm.identifier = NSUserInterfaceItemIdentifier(p.id); buttons.append(rm)
+    }
+    let side = NSStackView(views: buttons); side.orientation = .vertical; side.alignment = .centerX; side.spacing = 4
+    side.setContentHuggingPriority(.required, for: .horizontal); side.widthAnchor.constraint(equalToConstant: 96).isActive = true   // one column of buttons on every row
+    let h = NSStackView(views: [img, text, side]); h.orientation = .horizontal; h.alignment = .centerY; h.distribution = .fill; h.spacing = 12; h.edgeInsets = NSEdgeInsets(top: 10, left: 0, bottom: 10, right: 0)
     img.widthAnchor.constraint(equalToConstant: 96).isActive = true; img.heightAnchor.constraint(equalToConstant: 64).isActive = true
     text.setContentHuggingPriority(.defaultLow, for: .horizontal); text.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
     btn.setContentHuggingPriority(.required, for: .horizontal); img.setContentHuggingPriority(.required, for: .horizontal)
     desc.preferredMaxLayoutWidth = 240; by.preferredMaxLayoutWidth = 240                 // (a fan-art line makes it long)
     return h
+  }
+  @objc func remove(_ b: NSButton) {
+    guard !busy, let id = b.identifier?.rawValue, let p = packs.first(where: { $0.id == id }) else { return }
+    switch removeCommunityPack(p.id) {
+    case .success(let cid): status.stringValue = T("\(p.shownName) 지웠어요(휴지통에 있어요)", "Removed \(p.shownName) (it's in the Trash)"); onRemoved?(cid, p.shownName)
+    case .failure(let e): status.stringValue = describe(e)
+    }
+    rebuild()
   }
   @objc func install(_ b: NSButton) {
     guard !busy, let id = b.identifier?.rawValue, let p = packs.first(where: { $0.id == id }) else { return }
@@ -371,3 +402,11 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
   }
 }
 private final class FlippedView: NSView { override var isFlipped: Bool { true } }
+/// The app has no menu bar, so nothing handles ⌘W: the window closes itself on ⌘W and on Esc
+final class ClosableWindow: NSWindow {
+  override func performKeyEquivalent(with e: NSEvent) -> Bool {
+    if e.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command, e.charactersIgnoringModifiers == "w" { performClose(nil); return true }
+    return super.performKeyEquivalent(with: e)
+  }
+  override func cancelOperation(_ sender: Any?) { performClose(nil) }
+}

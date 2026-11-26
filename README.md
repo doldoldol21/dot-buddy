@@ -171,7 +171,7 @@ The full guide, with every motion name and the `chara.json` format, is in [CHARA
 
 ## Configuration
 
-**Settings menu** (right-click the pet): Sessions (what each one is doing; choose one to jump to it), Hide for a While, Character, Size, Wandering (how often it visits windows), Chattiness (Chatty, Normal, Quiet, Off), Font, Bubble Text size, Language, Check for Updates…, Update Automatically, Install Command-Line Tools, Launch at Login, Quit. When three or more sessions finish at once, they share one bubble ("4 done: api, web, docs…").
+**Settings menu** (right-click the pet): Sessions (what each one is doing; choose one to jump to it), Hide for a While, Character, Size, Wandering (how often it visits windows), Chattiness (Chatty, Normal, Quiet, Off), Font, Bubble Text size (separate from Size), Language, Seasonal Touches, Check for Updates…, Update Automatically, Install Command-Line Tools, Launch at Login, Quit. When three or more sessions finish at once, they share one bubble ("4 done: api, web, docs…").
 
 **`tools.json`** (`~/Library/Application Support/DotBuddy/tools.json`) customizes each agent. Changes apply on the next read, no restart needed. Keys are tool names as passed to `--report` (`claude` for Claude Code), and `*` applies to every tool.
 
