@@ -6,9 +6,9 @@
 
 <p align="center"><a href="README.md">English</a> | 한국어</p>
 
-<!-- 그림은 앱이 직접 그려요: bin/DotBuddy --demo-gif (README.md 맨 위 주석 참고) -->
+<!-- 맨 위 GIF 는 실제 화면 녹화, 나머지는 앱이 직접 그려요(README.md 맨 위 주석 참고) -->
 <p align="center">
-  <img src="docs/media/hero.ko.gif" alt="창 위를 걷다가 노트북으로 일하고, 세션이 끝났다·질문이 있다고 알려 주는 도트 친구" width="720">
+  <img src="docs/media/demo.ko.gif" alt="실제 바탕화면에서: 세션이 일하는 동안 터미널 창 위에서 노트북을 두드리다가, 다른 창을 보는 사이 끝났다고 알려 주고, 말풍선을 누르면 그 터미널 탭으로 돌아가는 도트 친구" width="720">
 </p>
 
 **코딩 에이전트가 일하는지, 끝났는지, 나를 기다리는지 알려 주는 macOS 바탕화면 도트 펫이에요.**
@@ -21,6 +21,10 @@
 - 화면 글은 한국어와 영어 두 가지예요
 
 ## 무엇에 반응하나요
+
+<p align="center">
+  <img src="docs/media/hero.ko.gif" alt="창 위를 걷다가 노트북으로 일하고, 세션이 끝났다·질문이 있다고 알려 주는 도트 친구" width="720">
+</p>
 
 펫 한 마리가 모든 세션 중 가장 급한 상태를 보여 줘요.
 

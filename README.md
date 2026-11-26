@@ -7,12 +7,12 @@
 <p align="center">English | <a href="README.ko.md">한국어</a></p>
 
 <!--
-Media in docs/media/ is drawn by the app itself: `bin/DotBuddy --demo-gif docs/media/hero.gif hero`
+docs/media/demo.gif and demo.ko.gif are a real screen recording (macOS screencapture, then ffmpeg to GIF).
+The rest is drawn by the app itself: `bin/DotBuddy --demo-gif docs/media/hero.gif hero`
 (DOTBUDDY_LANG=ko for hero.ko.gif) and `--demo-gif docs/media/characters.gif characters`.
-Still worth recording on a real desktop some day: throwing the pet onto a window, click-to-jump to a terminal tab.
 -->
 <p align="center">
-  <img src="docs/media/hero.gif" alt="Dot Buddy walks along a window, works on a laptop while the agent runs, then announces a finished session and a question" width="720">
+  <img src="docs/media/demo.gif" alt="On a real desktop: the pet types on a laptop on top of a terminal window while the session works, says the session is done when you switch to another window, and clicking the bubble brings back that exact terminal tab" width="720">
 </p>
 
 **A pixel desktop pet for macOS that tells you when your coding agents are working, done, or waiting on you.**
@@ -25,6 +25,10 @@ Dot Buddy lives on your desktop, walks along window edges and widgets, and watch
 - English and Korean UI
 
 ## What it reacts to
+
+<p align="center">
+  <img src="docs/media/hero.gif" alt="Dot Buddy walks along a window, works on a laptop while the agent runs, then announces a finished session and a question" width="720">
+</p>
 
 One pet shows the most urgent state across all sessions.
 
