@@ -4,7 +4,7 @@
   python3 -I scripts/contributors.py                     write the lists (people with a commit here, people who drew a character)
   python3 -I scripts/contributors.py --thank             also comment on the merged pull request in $PR (author $AUTHOR, repo $REPO)
 
-Code contributors come from GitHub's contributors API for this repo; character artists from the `author` of every pack in
+Code contributors come from GitHub's contributors API for this repo, minus people whose commits only added character packs; character artists from the `author` of every pack in
 dot-buddy/characters (packs/index.json), in the order their first pack was added. Bots are left out. Needs `gh` with a token.
 """
 import base64, json, os, subprocess, sys
@@ -21,9 +21,22 @@ def gh(*a):
     return subprocess.run(["gh", "api", *a], capture_output=True, text=True, check=True).stdout
 
 
+ART_ONLY = ("community/", "charas/")                                         # character packs: those people are on the Characters row
+
+
 def coders():
     out = json.loads(gh(f"repos/{REPO}/contributors?per_page=100"))
-    return [c["login"] for c in out if c.get("type") != "Bot" and not c["login"].endswith("[bot]")]
+    return [c["login"] for c in out if c.get("type") != "Bot" and not c["login"].endswith("[bot]") and not only_art(c["login"])]
+
+
+def only_art(login):
+    """True when every commit of theirs here only added character pictures (a pack merged before dot-buddy/characters existed)"""
+    shas = json.loads(gh(f"repos/{REPO}/commits?author={login}&per_page=100", "--jq", "[.[].sha]"))
+    for sha in shas:
+        files = json.loads(gh(f"repos/{REPO}/commits/{sha}", "--jq", "[.files[].filename]"))
+        if not files or any(not f.startswith(ART_ONLY) for f in files):
+            return False
+    return bool(shas)
 
 
 def artists():
