@@ -1,4 +1,4 @@
-# Categories for GitHub's auto-generated release notes (used by `gh release create --generate-notes`).
+# Categories for GitHub's generated release notes. scripts/release-notes.py writes the notes itself and takes only the "New Contributors" part from them.
 changelog:
   exclude:
     labels: [skip-changelog]

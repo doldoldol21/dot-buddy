@@ -29,6 +29,9 @@ jobs:
       - name: Contributors list
         run: python3 -I tests/test_contributors.py
 
+      - name: Release notes
+        run: python3 -I tests/test_release_notes.py
+
       # The community characters in dot-buddy/characters must still pass its checks and load in this build
       - uses: actions/checkout@v7
         with:
@@ -49,6 +52,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0     # the release notes list the commits since the previous tag
 
       - name: Check that VERSION matches the tag
         run: |
@@ -82,10 +87,13 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
+          python3 -I scripts/release-notes.py "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
           gh release create "$GITHUB_REF_NAME" "Dot-Buddy-${GITHUB_REF_NAME#v}.zip" "Dot-Buddy-${GITHUB_REF_NAME#v}.zip.sig" \
             --title "Dot Buddy ${GITHUB_REF_NAME#v}" \
-            --generate-notes \
+            --notes-file "$RUNNER_TEMP/notes.md" \
             --verify-tag
 
   update-tap:

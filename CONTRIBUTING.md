@@ -78,6 +78,7 @@ Everything is plain Swift and AppKit compiled with `swiftc`. There is no Xcode p
 | `scripts/sign-update.swift` | Signs a release zip in CI |
 | `scripts/precheck.py`, `tests/test_precheck.py` | The pull request pre-check comment and its rule tests |
 | `scripts/contributors.py`, `tests/test_contributors.py` | The contributors list in the READMEs, updated after every merge and once a day |
+| `scripts/release-notes.py`, `tests/test_release_notes.py` | Release notes from the commits since the last tag |
 | `tests/fixtures/community/` | One pack and its index entry, for the self-test of downloading community characters. The packs themselves and their checks live in [dot-buddy/characters](https://github.com/dot-buddy/characters) |
 | `charas/chars.py`, `charas/pix.py` | Generator for the six built-in high-res character packs |
 | `build.sh` | Build, font download, app bundle, ad-hoc signing. It installs to `~/Applications` unless you pass `APP=…`, so use `APP=/tmp/Dot.app ./build.sh` while you have a release build installed |
@@ -118,6 +119,6 @@ Original characters are welcome. The easiest way to share one is a pack in [dot-
 
 1. Bump `VERSION` (SemVer) and commit.
 2. Tag and push: `git tag -a v$(cat VERSION) -m "Dot Buddy $(cat VERSION)" && git push origin v$(cat VERSION)`.
-3. CI checks that the tag matches `VERSION`, builds a universal app with `BUILD_KIND=release`, signs the zip with the `UPDATE_SIGNING_KEY` secret (`scripts/sign-update.swift`) and publishes the release with `Dot-Buddy-<version>.zip` and its `.sig`. Installed release builds pick it up through the in-app updater.
+3. CI checks that the tag matches `VERSION`, builds a universal app with `BUILD_KIND=release`, signs the zip with the `UPDATE_SIGNING_KEY` secret (`scripts/sign-update.swift`) and publishes the release with `Dot-Buddy-<version>.zip` and its `.sig`. The notes list the commit subjects since the last tag (`scripts/release-notes.py`), so write subjects a user can read. Installed release builds pick it up through the in-app updater.
 
 Never rotate the signing key casually: apps already out there only trust the public key they were built with.
