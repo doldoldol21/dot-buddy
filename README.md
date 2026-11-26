@@ -56,6 +56,7 @@ Clicking the pet marks everything as seen. A finished session keeps its "done" s
 - **Characters.** Six original pixel characters (Dumpling, Acorn, Sprout, Cloud, Candle, Pebble), each with its own lines and effects. Draw your own, or drop a character someone sent you (a zip, folder or PNG) on the pet to install it: see [CHARACTERS.md](CHARACTERS.md).
 - **Community characters.** Install characters other people drew from the menu (Character → **More Characters…**), or browse the [gallery](https://dot-buddy.github.io/characters/), and share yours with a pull request to [dot-buddy/characters](https://github.com/dot-buddy/characters).
 - **Codex pets.** Pets made for the Codex app (`pet.json` + 8×9 spritesheet) load as-is from `~/.codex/pets/`. A downloaded Codex pet zip works too: drop it on the pet without unzipping.
+- **Share as GIF.** Character → **Save This Character as GIF** puts a short looping GIF of the one on screen in Downloads, ready to post.
 - **Seasons.** Wears a Santa hat through December and has something to say on Christmas and New Year's Day. Turn it off with **Seasonal Touches** in the menu.
 - **Bilingual.** Follows the system language; switch between English and Korean from the menu.
 

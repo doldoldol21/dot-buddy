@@ -345,7 +345,7 @@ struct Main {
       switch communityIndex() {
       case .failure(let e): print(describe(e)); exit(1)
       case .success(let ps):
-        let list = ps.map { p -> [String: Any] in ["id": p.id, "name": p.shownName, "author": p.author, "license": p.license, "files": p.files.count, "state": "\(communityState(p))", "added": p.added, "new": p.isNew, "likes": p.likes, "discussion": p.discussion] }
+        let list = ps.map { p -> [String: Any] in ["id": p.id, "name": p.shownName, "description": p.shownDescription, "author": p.author, "license": p.license, "files": p.files.count, "state": "\(communityState(p))", "added": p.added, "new": p.isNew, "likes": p.likes, "discussion": p.discussion] }
         if let d = try? JSONSerialization.data(withJSONObject: list, options: [.sortedKeys]) { print(String(decoding: d, as: UTF8.self)) }
         return
       }

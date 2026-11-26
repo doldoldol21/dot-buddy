@@ -2126,7 +2126,7 @@ final class Pet: NSObject, NSMenuDelegate {
     sub(T("캐릭터: \(chara.name)", "Character: \(chara.name)"), ALL_CHARAS.map { ($0.name, $0.id == chara.id, #selector(setChara(_:)), $0.id) })
     if let cm = menu.items.last?.submenu {                                          // Where packs go
       cm.addItem(.separator())
-      for (title, sel) in [(T("다른 캐릭터 받기…", "More Characters…"), #selector(openCommunity)), (T("캐릭터 폴더 열기", "Open Characters Folder"), #selector(openCharas)), (T("캐릭터 다시 불러오기", "Reload Characters"), #selector(reloadCharas))] {
+      for (title, sel) in [(T("다른 캐릭터 받기…", "More Characters…"), #selector(openCommunity)), (T("캐릭터 폴더 열기", "Open Characters Folder"), #selector(openCharas)), (T("캐릭터 다시 불러오기", "Reload Characters"), #selector(reloadCharas)), (T("이 캐릭터 GIF로 저장", "Save This Character as GIF"), #selector(saveGIF))] {
         let it = NSMenuItem(title: title, action: sel, keyEquivalent: ""); it.target = self; cm.addItem(it)
       }
     }
@@ -2321,6 +2321,24 @@ final class Pet: NSObject, NSMenuDelegate {
   @objc func openCharas() {
     try? FileManager.default.createDirectory(at: CHARAS_DIR, withIntermediateDirectories: true)
     NSWorkspace.shared.open(CHARAS_DIR)
+  }
+  /// The character on screen as a short looping GIF in Downloads (to share), shown in Finder — drawn by a second copy of the app so the settings here stay as they are
+  @objc func saveGIF() {
+    guard let exe = Bundle.main.executablePath else { return }
+    let id = chara.id, file = id.replacingOccurrences(of: "pack:", with: "").filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }, fm = FileManager.default
+    let dir = fm.urls(for: .downloadsDirectory, in: .userDomainMask).first ?? fm.homeDirectoryForCurrentUser
+    var out = dir.appendingPathComponent("dot-buddy-\(file).gif"), n = 2
+    while fm.fileExists(atPath: out.path) { out = dir.appendingPathComponent("dot-buddy-\(file)-\(n).gif"); n += 1 }
+    say(T("GIF 그리는 중~", "Drawing a GIF~"), now)
+    let target = out
+    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+      let ok = run(exe, ["--demo-gif", target.path, "chara:" + id], timeout: 60) != nil && FileManager.default.fileExists(atPath: target.path)
+      DispatchQueue.main.async {
+        guard let self else { return }
+        if ok { NSWorkspace.shared.activateFileViewerSelecting([target]); self.cheerUntil = self.now + 1.2 }
+        self.say(ok ? T("다운로드 폴더에 저장했어요!", "Saved to Downloads!") : T("GIF를 못 만들었어요", "Couldn't make the GIF"), self.now)
+      }
+    }
   }
   /// Community characters window (talks to GitHub only once it opens)
   var community: CommunityWindow?

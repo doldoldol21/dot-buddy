@@ -26,6 +26,7 @@ struct CommunityPack {
   var basedOn = ""                                                                // Fan art: the original character and series (the original belongs to its owner)
   var added = ""                                                                  // YYYY-MM-DD the pack first appeared in the list
   var likes = 0, discussion = ""                                                  // People who liked it (❤️/👍 on its GitHub discussion, counted daily by CI) and that discussion
+  var descriptions: [String: String] = [:]                                        // The description in other languages ("ko": …)
   /// Added in the last two weeks
   var isNew: Bool {
     let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(identifier: "UTC")
@@ -33,6 +34,7 @@ struct CommunityPack {
     return Date().timeIntervalSince(d) < 14 * 86400
   }
   var shownName: String { names[LANG.rawValue] ?? names["en"] ?? name }
+  var shownDescription: String { descriptions[LANG.rawValue] ?? description }
   /// One value for "which version of this pack": changes whenever any file changes
   var digest: String { SHA256.hash(data: Data(files.map { "\($0.name):\($0.sha256)" }.joined(separator: "\n").utf8)).map { String(format: "%02x", $0) }.joined() }
 }
@@ -96,7 +98,8 @@ func communityIndex() -> Result<[CommunityPack], CommunityError> {
                                author: String(str("author").prefix(39)), license: String(str("license").prefix(20)), description: String(str("description").prefix(140)), files: files, preview: preview,
                                basedOn: String(str("based_on").prefix(60)), added: str("added").count == 10 ? str("added") : "",
                                likes: max(0, min(p["likes"] as? Int ?? 0, 999_999)),
-                               discussion: str("discussion").hasPrefix("https://github.com/\(COMMUNITY_REPO)/discussions/") ? str("discussion") : ""))
+                               discussion: str("discussion").hasPrefix("https://github.com/\(COMMUNITY_REPO)/discussions/") ? str("discussion") : "",
+                               descriptions: (p["descriptions"] as? [String: String] ?? [:]).mapValues { String($0.trimmingCharacters(in: .whitespacesAndNewlines).prefix(140)) }.filter { !$0.value.isEmpty }))
     }
     return .success(out.enumerated().sorted { ($0.element.added, -$0.offset) > ($1.element.added, -$1.offset) }.map(\.element))   // newest first, like the gallery
   }
@@ -370,7 +373,7 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
     let name: NSView = n
     let by = NSTextField(wrappingLabelWithString: [p.author.isEmpty ? "" : T("그린 사람 \(p.author)", "by \(p.author)"), p.license, p.basedOn.isEmpty ? "" : T("팬아트 · 원작 \(p.basedOn)", "Fan art of \(p.basedOn)")].filter { !$0.isEmpty }.joined(separator: " · "))
     by.font = .systemFont(ofSize: 11); by.textColor = .secondaryLabelColor
-    let desc = NSTextField(wrappingLabelWithString: p.description); desc.font = .systemFont(ofSize: 12)
+    let desc = NSTextField(wrappingLabelWithString: p.shownDescription); desc.font = .systemFont(ofSize: 12)
     let state = communityState(p)
     let btn = NSButton(title: "", target: self, action: #selector(install(_:))); btn.bezelStyle = .rounded; btn.identifier = NSUserInterfaceItemIdentifier(p.id)
     switch state {
@@ -379,7 +382,7 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
     case .installed: btn.title = T("받음", "Installed"); btn.isEnabled = false
     case .mine: btn.title = T("이름 겹침", "Name in use"); btn.isEnabled = false; btn.toolTip = describe(.exists(p.id))
     }
-    let text = NSStackView(views: [name, by] + (p.description.isEmpty ? [] : [desc])); text.orientation = .vertical; text.alignment = .leading; text.spacing = 2
+    let text = NSStackView(views: [name, by] + (p.shownDescription.isEmpty ? [] : [desc])); text.orientation = .vertical; text.alignment = .leading; text.spacing = 2
     var buttons: [NSView] = [btn]
     if state == .installed || state == .updatable {                                   // Installed from the list: it can be removed again (to the Trash)
       let rm = NSButton(title: T("지우기", "Remove"), target: self, action: #selector(remove(_:))); rm.bezelStyle = .rounded; rm.controlSize = .small

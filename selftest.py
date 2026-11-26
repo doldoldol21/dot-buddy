@@ -264,6 +264,11 @@ with tempfile.TemporaryDirectory() as td:
     g = os.path.join(td, "c.gif")
     r = subprocess.run([BIN, "--demo-gif", g, "characters"], capture_output=True, timeout=60)
     check("demo GIF", (r.returncode, os.path.exists(g) and open(g, "rb").read(6) in (b"GIF89a", b"GIF87a")), (0, True))
+    # "Save This Character as GIF" in the menu runs this for the character on screen; an unknown character makes no file
+    g1, g2 = os.path.join(td, "m.gif"), os.path.join(td, "x.gif")
+    r1 = subprocess.run([BIN, "--demo-gif", g1, "chara:mandu"], capture_output=True, timeout=60)
+    r2 = subprocess.run([BIN, "--demo-gif", g2, "chara:no-such-one"], capture_output=True, timeout=60)
+    check("GIF of one character", (r1.returncode, os.path.exists(g1) and open(g1, "rb").read(6) == b"GIF89a", r2.returncode, os.path.exists(g2)), (0, True, 1, False))
 
 # English: with an English system language, no Hangul gets mixed into the mutterings and notification text
 import re
@@ -314,6 +319,13 @@ with tempfile.TemporaryDirectory() as td:
     json.dump(li, open(os.path.join(lk, "index.json"), "w"))
     got = {p["id"]: (p["likes"], p["discussion"]) for p in json.loads(community("file://" + lk + "/", os.path.join(td, "c4"), "--community-list")[1])}
     check("커뮤니티 — 좋아요 수와 GitHub 토론 링크만", (got[ids[0]], got["liked"]), ((5, ""), (2, "https://github.com/dot-buddy/characters/discussions/7")))
+    li["packs"][-1]["descriptions"] = {"ko": "한국어 소개"}; json.dump(li, open(os.path.join(lk, "index.json"), "w"))
+    def described(lang):
+        env = dict(os.environ, DOTBUDDY_COMMUNITY_BASE="file://" + lk + "/", DOTBUDDY_CHARAS=os.path.join(td, "c4"), DOTBUDDY_LANG=lang)
+        out = subprocess.run([BIN, "--community-list"], capture_output=True, text=True, timeout=30, env=env).stdout
+        return {p["id"]: p["description"] for p in json.loads(out)}
+    ko, en = described("ko"), described("en")
+    check("커뮤니티 — 설명은 보는 사람 언어로(없으면 기본)", (ko["liked"], en["liked"] == li["packs"][0]["description"], ko[ids[0]] == li["packs"][0]["description"]), ("한국어 소개", True, True))
     rr, _ = community(base, mine, "--community-remove", ids[0])                         # Remove: never a folder the user made
     r4, out4 = community(base, ch, "--community-remove", ids[0])
     st4 = [p["state"] for p in json.loads(community(base, ch, "--community-list")[1]) if p["id"] == ids[0]]
