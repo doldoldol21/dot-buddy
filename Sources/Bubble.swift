@@ -176,6 +176,8 @@ let UD = UserDefaults.standard
 var SEASONAL: Bool { UD.object(forKey: "seasonal") == nil || UD.bool(forKey: "seasonal") }
 /// December 1-26: the pet wears a Santa hat
 func christmasSeason(month: Int, day: Int) -> Bool { month == 12 && day <= 26 }
+/// December: a light snow around the pet for one minute in every five (not all the time, so it stays a small surprise)
+func snowTime(month: Int, minute: Int) -> Bool { month == 12 && minute % 5 == 0 }
 let BUNDLE_ID = "io.github.doldoldol21.dot-buddy", OLD_BUNDLE_IDS = ["dev.personal.dot-buddy"]
 /// First launch after the bundle id changed: copy settings from the old id (character, size, days together, login item…)
 func migrateDefaults() {

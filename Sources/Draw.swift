@@ -124,6 +124,7 @@ struct Pose: Hashable {
   var sink = 0                                       // Rows sunk below the floor (nothing is drawn below the floor)
   var nightcap = false, mug = -1                     // Time-of-day props: nightcap (night / sleeping) and mug (morning, steam beat 0 or 1)
   var santa = false                                  // Seasonal: Santa hat (December, see christmasSeason)
+  var snow = -1.0                                    // Seasonal: snowflakes drifting down, 0 to 1 cycle (December, see snowTime)
   var fx = 0, fxK = 0.0                              // Character effect: 1 error, 2 done; fxK is progress 0 to 1
   var icon = 0, iconBob = 0                          // Icon above the head: 1 light bulb (flash of insight), 2 question mark (head tilt)
 }
@@ -360,6 +361,16 @@ func draw(_ ch: Chara, _ p: Pose) -> Canvas {
       let yy = top - 12 + Int(q * 14) + (k * 5) % 4, sway = Int(sin(q * 9 + Double(k)) * 1.4)
       let c = rgba(["#f06b8a", "#f6dc6a", "#4f9ad0"][k % 3], q < 0.7 ? 1 : (1 - q) / 0.3)
       cv.set(x0 + sway, yy, c); if k % 2 == 0 { cv.set(x0 + sway + 1, yy, c) }
+    }
+  }
+  if p.snow >= 0 {                                   // Six snowflakes drift down past the pet; two of them are little crosses
+    let cols = [2, 8, 13, 19, 24, 29], flake = rgba("#ffffff"), arm = rgba("#cfe0f4")
+    for (k, x0) in cols.enumerated() {
+      let q = (p.snow + Double(k) * 0.37).truncatingRemainder(dividingBy: 1)
+      let x = x0 + Int((sin(q * 7 + Double(k) * 1.3) * 1.3).rounded()), y = Int(q * Double(GY + 3)) - 3
+      guard y >= 0, y < GY else { continue }
+      if k % 3 == 1 { for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] { cv.set(x + dx, y + dy, arm) } }
+      cv.set(x, y, flake)
     }
   }
   if p.hearts >= 0 {
