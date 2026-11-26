@@ -46,7 +46,8 @@
   | [cmux](https://github.com/manaflow-ai/cmux) | 그 탭까지(cmux CLI) |
   | 터미널(Terminal) | 그 탭까지(AppleScript, 처음 한 번 자동화 권한을 물어요) |
   | iTerm2 | 그 세션까지(AppleScript, 처음 한 번 자동화 권한을 물어요) |
-  | 그 밖(Ghostty, WezTerm, kitty, VS Code, 어느 터미널이든 tmux 안 등) | 그 앱을 앞으로 가져와요 |
+  | [Ghostty](https://ghostty.org) 1.4 이상 | 그 탭·분할 창까지(AppleScript, 처음 한 번 자동화 권한을 물어요) |
+  | 그 밖(WezTerm, kitty, VS Code, 어느 터미널이든 tmux 안 등) | 그 앱을 앞으로 가져와요 |
 
   에이전트마다 내 명령으로 바꿀 수도 있어요([설정](#설정) 참고).
 - **캐릭터.** 오리지널 도트 캐릭터 여섯(만두, 도토리, 새싹 화분, 구름, 촛불, 이끼돌)이 있고, 캐릭터마다 혼잣말과 효과가 달라요. 직접 그려 넣을 수도 있고, 남이 보내 준 캐릭터(zip, 폴더, PNG)는 펫 위에 끌어 놓으면 바로 깔려요. [CHARACTERS.ko.md](CHARACTERS.ko.md)를 보세요.
@@ -202,7 +203,7 @@ Codex CLI, Gemini CLI, Cursor, opencode, Aider 설정은 [docs/agents.md](docs/a
 | 증상 | 해 볼 것 |
 |---|---|
 | Claude Code 세션에 반응하지 않아요 | `"$DOTBUDDY" --state` 를 돌려 보세요. `sessions` 가 비어 있으면 Claude Code 가 도는 동안 `~/.claude/sessions/` 에 `.json` 파일이 있는지 보세요. 최근 버전의 Claude Code 가 필요해요. |
-| 터미널이나 iTerm2 에서 말풍선을 눌러도 탭이 안 바뀌어요 | **시스템 설정 → 개인정보 보호 및 보안 → 자동화**에서 도트 친구를 허용하세요. |
+| 터미널, iTerm2, Ghostty 에서 말풍선을 눌러도 탭이 안 바뀌어요 | **시스템 설정 → 개인정보 보호 및 보안 → 자동화**에서 도트 친구를 허용하세요. |
 | 말풍선을 눌러도 아무 일이 없어요 | 그 세션이 일반 터미널 앱에서 돌지 않는 경우예요(예: IDE 안의 에이전트). `tools.json` 에 `open` 명령을 넣으세요. |
 | 말풍선 글자가 시스템 글꼴이거나 네모로 나와요 | 빌드 때 글꼴을 못 받았어요. 인터넷이 되는 곳에서 다시 빌드하세요. |
 | 캐릭터가 작고 단순해요 | 빌드 때 `python3` 를 못 찾았어요. 설치하고 다시 빌드하세요. |

@@ -7,7 +7,7 @@ import ServiceManagement
 // Clicking a notification goes to the terminal the session is running in. Order:
 //   (1) the "open" command in tools.json (per tool, or "*" for all) — the user can attach any terminal
 //   (2) find the app that launched the session process (walking up the parents; if that fails, the 'responsible app' macOS knows) and pick its tab
-//       — cmux (CLI), Terminal and iTerm2 (AppleScript, found by tty). An app with no way to pick a tab is only brought to the front
+//       — cmux (CLI), Terminal, iTerm2 and Ghostty (AppleScript, found by tty). An app with no way to pick a tab is only brought to the front
 // Reads the tty and parents with libproc, without any external program (does not spawn ps).
 /// Run one external command — killed after timeout seconds if it hangs (so a stuck cmux or osascript cannot stop the notification from ever showing)
 func run(_ exe: String, _ args: [String], timeout: Double = 4) -> Data? {
@@ -56,6 +56,8 @@ let TAB_PICKERS: [String: (NSRunningApplication, String) -> Bool] = [
                                           "if tty of t is item 1 of argv then", "set selected of t to true", "set index of w to 1", "return \"ok\"", "end if", "end repeat", "end repeat", "end tell"], tty) },
   "com.googlecode.iterm2": { _, tty in osa(["tell application id \"com.googlecode.iterm2\"", "repeat with w in windows", "repeat with t in tabs of w", "repeat with s in sessions of t",
                                              "if tty of s is item 1 of argv then", "select w", "select t", "select s", "return \"ok\"", "end if", "end repeat", "end repeat", "end repeat", "end tell"], tty) },
+  "com.mitchellh.ghostty": { _, tty in osa(["tell application id \"com.mitchellh.ghostty\"", "repeat with t in terminals",                 // Ghostty 1.4+ (AppleScript); focus selects the tab too
+                                             "if tty of t is item 1 of argv then", "focus t", "return \"ok\"", "end if", "end repeat", "end tell"], tty) },
 ]
 /// Run AppleScript through osascript (system default) — the tty is passed as an argument so it never gets mixed into the script text. The first run shows an 'allow control' dialog
 func osa(_ lines: [String], _ arg: String) -> Bool {

@@ -2156,7 +2156,10 @@ final class Pet: NSObject, NSMenuDelegate {
     login.state = SMAppService.mainApp.status == .enabled ? .on : .off; menu.addItem(login)
     menu.addItem(withTitle: T("종료", "Quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
     NSApp.activate(ignoringOtherApps: true)
-    menu.popUp(positioning: nil, at: NSPoint(x: view.bounds.midX, y: CGFloat(CH - lastCanvas.top) * ds), in: view)
+    let hold = floor != nil && { if case .sleep = act { return false } else if case .work = act { return false } else { return true } }()
+    if hold { act = .stand; actUntil = now + 3600 }                                // Stays put under its menu (it used to walk off with the menu left behind)
+    menu.popUp(positioning: nil, at: NSPoint(x: view.bounds.midX, y: CGFloat(CH - lastCanvas.top) * ds), in: view)   // returns when the menu closes
+    if hold, case .stand = act { actUntil = now + 0.6 }
   }
   /// For a first-time user: explain what it does in a few bubbles, and ask once whether to start at login (it never enables it without asking).
   /// Skipped for people who used an earlier version (login item or character already chosen)

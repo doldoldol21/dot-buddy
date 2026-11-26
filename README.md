@@ -50,7 +50,8 @@ Clicking the pet marks everything as seen. A finished session keeps its "done" s
   | [cmux](https://github.com/manaflow-ai/cmux) | The exact tab (via the cmux CLI) |
   | Terminal | The exact tab (AppleScript, asks for Automation permission once) |
   | iTerm2 | The exact session (AppleScript, asks for Automation permission once) |
-  | Anything else (Ghostty, WezTerm, kitty, VS Code, tmux inside any terminal, …) | Brings the app to the front |
+  | [Ghostty](https://ghostty.org) 1.4+ | The exact tab or split (AppleScript, asks for Automation permission once) |
+  | Anything else (WezTerm, kitty, VS Code, tmux inside any terminal, …) | Brings the app to the front |
 
   You can replace this with your own command per agent (see [Configuration](#configuration)).
 - **Characters.** Six original pixel characters (Dumpling, Acorn, Sprout, Cloud, Candle, Pebble), each with its own lines and effects. Draw your own, or drop a character someone sent you (a zip, folder or PNG) on the pet to install it: see [CHARACTERS.md](CHARACTERS.md).
@@ -206,7 +207,7 @@ The full guide, with every motion name and the `chara.json` format, is in [CHARA
 | Problem | Try |
 |---|---|
 | The pet ignores my Claude Code sessions | Run `"$DOTBUDDY" --state`. If `sessions` is empty, check that `~/.claude/sessions/` has `.json` files while Claude Code runs. A recent Claude Code version is needed. |
-| Clicking a bubble doesn't switch tabs in Terminal or iTerm2 | Allow Dot Buddy under **System Settings → Privacy & Security → Automation**. |
+| Clicking a bubble doesn't switch tabs in Terminal, iTerm2 or Ghostty | Allow Dot Buddy under **System Settings → Privacy & Security → Automation**. |
 | Clicking a bubble does nothing | The session's terminal isn't a regular app (for example an IDE-hosted agent). Add an `open` command in `tools.json`. |
 | Bubble text uses the system font or shows boxes | The font download failed during the build. Rebuild with network access. |
 | Characters look small and simple | `python3` wasn't found at build time. Install it and rebuild. |

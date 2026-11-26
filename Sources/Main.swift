@@ -4,7 +4,7 @@
 // It does not touch hooks, MCP, settings.json or CLAUDE.md, and never uses the conversation context. Only "waiting for a question" reads the last 64KB of the session jsonl.
 // One pet represents everything: question(?) > waiting for you (✓ + count) > working (laptop) > all idle (asleep).
 // Where it lives: the desktop layer (plays on widgets and window tops, hides behind windows); it comes to the front when it needs to call you.
-// Clicking a notification opens that session's terminal (cmux·Terminal·iTerm2 down to the tab, others just the app — changeable via "open" in tools.json). Right-click for settings. You can drag and throw it.
+// Clicking a notification opens that session's terminal (cmux·Terminal·iTerm2·Ghostty down to the tab, others just the app — changeable via "open" in tools.json). Right-click for settings. You can drag and throw it.
 // A few ideas come from OpenPets (MIT): transparent pixels click through, fast ticks only while moving, throw speed from the last 0.1 s of samples.
 //
 //   DotBuddy                 the app (build and install: build.sh)

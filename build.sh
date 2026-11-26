@@ -104,14 +104,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>DotBuddyBuild</key><string>$BUILD_KIND</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSUIElement</key><true/>
-  <key>NSAppleEventsUsageDescription</key><string>Used to jump to the terminal tab (Terminal, iTerm2) running a session when you click its notification.</string>
+  <key>NSAppleEventsUsageDescription</key><string>Used to jump to the terminal tab (Terminal, iTerm2, Ghostty) running a session when you click its notification.</string>
 </dict></plist>
 PLIST
 # Korean localization (Finder and the system show the Korean name and permission text on Korean systems)
 mkdir -p "$APP/Contents/Resources/ko.lproj"
 cat > "$APP/Contents/Resources/ko.lproj/InfoPlist.strings" <<'STRINGS'
 CFBundleDisplayName = "도트 친구";
-NSAppleEventsUsageDescription = "알림을 누르면 그 세션이 도는 터미널 탭(Terminal·iTerm2)으로 가려고 씁니다.";
+NSAppleEventsUsageDescription = "알림을 누르면 그 세션이 도는 터미널 탭(Terminal·iTerm2·Ghostty)으로 가려고 씁니다.";
 STRINGS
 # Remove the default packs an old build put in the user folder that are identical to the current ones (left there, they keep hiding the app's new drawings). Only when installing to the default location
 UC="$HOME/Library/Application Support/DotBuddy/charas"
