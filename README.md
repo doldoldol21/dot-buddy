@@ -219,6 +219,16 @@ The full guide, with every motion name and the `chara.json` format, is in [CHARA
 
 Bug reports, characters you drew yourself and integrations for more agents are welcome. Dot Buddy is a pet to look at, so chat, AI calls and features that send input to your agents are out of scope. See [CONTRIBUTING.md](CONTRIBUTING.md#what-dot-buddy-is-for) before you start on a feature. Report security issues privately as described in [SECURITY.md](SECURITY.md).
 
+Thank you to everyone who has helped:
+
+<!-- contributors:start -->
+<p><b>Code</b></p>
+<table><tr><td align="center"><a href="https://github.com/doldoldol21"><img src="https://github.com/doldoldol21.png?size=96" width="48" height="48" alt="doldoldol21"><br><sub>doldoldol21</sub></a></td><td align="center"><a href="https://github.com/GaneshUbale"><img src="https://github.com/GaneshUbale.png?size=96" width="48" height="48" alt="GaneshUbale"><br><sub>GaneshUbale</sub></a></td></tr></table>
+
+<p><b>Characters</b></p>
+<table><tr><td align="center"><a href="https://github.com/doldoldol21"><img src="https://github.com/doldoldol21.png?size=96" width="48" height="48" alt="doldoldol21"><br><sub>doldoldol21</sub></a></td><td align="center"><a href="https://github.com/GaneshUbale"><img src="https://github.com/GaneshUbale.png?size=96" width="48" height="48" alt="GaneshUbale"><br><sub>GaneshUbale</sub></a></td></tr></table>
+<!-- contributors:end -->
+
 ## License and acknowledgements
 
 MIT, see [LICENSE](LICENSE). Bundled fonts are under the SIL Open Font License 1.1; details in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

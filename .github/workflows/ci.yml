@@ -26,6 +26,9 @@ jobs:
       - name: Pre-check rules
         run: python3 -I tests/test_precheck.py
 
+      - name: Contributors list
+        run: python3 -I tests/test_contributors.py
+
       # The community characters in dot-buddy/characters must still pass its checks and load in this build
       - uses: actions/checkout@v7
         with:

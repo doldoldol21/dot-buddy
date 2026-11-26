@@ -1,0 +1,45 @@
+name: Contributors
+
+# Keeps the contributors list in README.md and README.ko.md current (scripts/contributors.py): people with a commit here,
+# and people who drew a character in dot-buddy/characters. When someone else's pull request is merged it also thanks them
+# in a comment. pull_request_target so it can comment on pull requests from forks; it checks out main, never the pull
+# request's code. A push made with this token doesn't start other workflows, so it asks for the project page itself.
+on:
+  pull_request_target:
+    types: [closed]
+  schedule:
+    - cron: "23 5 * * *"     # picks up new characters once a day
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+concurrency: contributors
+
+jobs:
+  update:
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - name: Update the lists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.type != 'Bot' && github.event.pull_request.user.login != github.repository_owner && github.event.pull_request.user.login || '' }}
+        run: python3 -I scripts/contributors.py ${{ github.event_name == 'pull_request_target' && '--thank' || '' }}
+      - name: Commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add README.md README.ko.md
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Update the contributors list"
+          for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 5; done
+          gh workflow run pages.yml --ref main
