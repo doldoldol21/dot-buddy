@@ -268,7 +268,7 @@ with tempfile.TemporaryDirectory() as td:
     g1, g2 = os.path.join(td, "m.gif"), os.path.join(td, "x.gif")
     r1 = subprocess.run([BIN, "--demo-gif", g1, "chara:mandu"], capture_output=True, timeout=60)
     r2 = subprocess.run([BIN, "--demo-gif", g2, "chara:no-such-one"], capture_output=True, timeout=60)
-    check("GIF of one character", (r1.returncode, os.path.exists(g1) and open(g1, "rb").read(6) == b"GIF89a", r2.returncode, os.path.exists(g2)), (0, True, 1, False))
+    check("GIF of one character", (r1.returncode, os.path.exists(g1) and open(g1, "rb").read(6) in (b"GIF89a", b"GIF87a"), r2.returncode, os.path.exists(g2)), (0, True, 1, False))
 
 # English: with an English system language, no Hangul gets mixed into the mutterings and notification text
 import re

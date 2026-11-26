@@ -93,7 +93,8 @@ func demoGIF(_ out: String, scene: String) -> Bool {
     }
   case let s where s.hasPrefix("chara:"):                                         // one character: idle → walk → work → cheer → wave, for the community gallery
     let id = String(s.dropFirst(6))
-    guard ALL_CHARAS.contains(where: { $0.id == id }) else { return false }
+    let bare = { (s: String) in s.replacingOccurrences(of: "pack:", with: "").replacingOccurrences(of: "custom:", with: "") }
+    guard ALL_CHARAS.contains(where: { $0.id == id || bare($0.id) == bare(id) }) else { return false }   // a pack can stand in for a built-in of the same name
     let ch = findChara(id), st = Stage(220, 120, floorY: 12)
     let acts = ["idle", "walk", "work", "cheer", "wave"], each = 1.6
     for i in 0..<Int(FPS * each * Double(acts.count)) {
