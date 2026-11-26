@@ -1,4 +1,4 @@
-// Finding the floor: screen bottom, widgets, window tops
+// Finding the floor: screen bottom first, then widgets and window tops
 import AppKit
 import CoreText
 import ServiceManagement
