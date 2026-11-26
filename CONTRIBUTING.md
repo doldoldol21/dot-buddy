@@ -76,7 +76,8 @@ Everything is plain Swift and AppKit compiled with `swiftc`. There is no Xcode p
 | `Sources/Demo.swift` | The README demo GIFs (`--demo-gif`), drawn offscreen, and community previews (`chara:<id>`) |
 | `Sources/Community.swift` | Community characters: the list, downloading and checking a pack, the More Characters window |
 | `scripts/sign-update.swift` | Signs a release zip in CI |
-| `scripts/community.py`, `community/` | Pack checks used by the self-test, and a frozen copy of the packs for app versions before 0.3.17. New characters go to [dot-buddy/characters](https://github.com/dot-buddy/characters) |
+| `community/` | A frozen copy of the packs for app versions before 0.3.17. New characters and the pack checks live in [dot-buddy/characters](https://github.com/dot-buddy/characters) |
+| `tests/fixtures/community/` | One pack and its index entry, for the self-test of downloading community characters |
 | `charas/chars.py`, `charas/pix.py` | Generator for the six built-in high-res character packs |
 | `build.sh` | Build, font download, app bundle, ad-hoc signing. It installs to `~/Applications` unless you pass `APP=…`, so use `APP=/tmp/Dot.app ./build.sh` while you have a release build installed |
 | `install.sh` | The one-line installer (latest signed release, no Gatekeeper prompt) |

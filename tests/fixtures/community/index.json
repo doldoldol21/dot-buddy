@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "packs": [
+    {
+      "id": "ghost",
+      "name": "Ghost",
+      "author": "doldoldol21",
+      "license": "CC-BY-4.0",
+      "description": "A friendly little ghost whose hem sways as it floats along.",
+      "files": [
+        {
+          "name": "ask.png",
+          "sha256": "d8937b45ad0046b1d3689051738a65674a5b395ea8538f2c0af034c7709d52aa",
+          "size": 308
+        },
+        {
+          "name": "blink.png",
+          "sha256": "6d65b12e20c697642df7373baeaa67e24fb3a9d9ef949e33e6695d2b2371e85c",
+          "size": 231
+        },
+        {
+          "name": "chara.json",
+          "sha256": "c0802763a1b309fedd58d850b72212dfdca6478ba66d5d9b003bbc9185d94dd8",
+          "size": 580
+        },
+        {
+          "name": "cheer.png",
+          "sha256": "6b6afcdbc5969150cea6a1460be9c2e38515e35fdfd0220b6f309d7ee84dc479",
+          "size": 316
+        },
+        {
+          "name": "climb.png",
+          "sha256": "0bec34ebf4e38ec25434a1cc6c7fe33bda44108b32253430a7eee27e0eb4c1fd",
+          "size": 306
+        },
+        {
+          "name": "crouch.png",
+          "sha256": "7ae2970c68d0e864f8d3e710dc3b6612a0f38e8de0e24f0e729c302d74b6418d",
+          "size": 220
+        },
+        {
+          "name": "dive.png",
+          "sha256": "1fec8427501909b9e980d9ea65eaa0da319f30395f77ec16fd2bbb01b19e8874",
+          "size": 223
+        },
+        {
+          "name": "dizzy.png",
+          "sha256": "966a030a24df8ef7366c064d6dbf4958772e40dad6638cde4c63777ed3df1272",
+          "size": 318
+        },
+        {
+          "name": "drag.png",
+          "sha256": "bd3b146d8b743d44b4fd80e666347b13abc4b2bb8f873d2d1bfcdf68c379d49f",
+          "size": 329
+        },
+        {
+          "name": "fall.png",
+          "sha256": "1f95165be37ea292ff0eabf091157be587d4876227844927786e8f488a8638ea",
+          "size": 236
+        },
+        {
+          "name": "hang.png",
+          "sha256": "da66b45273792c2fe53178c146ce7fe13bb2ab62fc2b3c867bbb10d170d0e02e",
+          "size": 316
+        },
+        {
+          "name": "happy.png",
+          "sha256": "9d10a304d4182ad5b8dbfa056f52dffce4c5f54a85585226a2ecdc5e106936cd",
+          "size": 245
+        },
+        {
+          "name": "hum.png",
+          "sha256": "e64786b336470cd7734113910edd707d1365f7237cb743102f1b46d25ade3104",
+          "size": 324
+        },
+        {
+          "name": "idle.png",
+          "sha256": "f4ee52d92dbe3c1adf383741f5bd94aa2cee8dafaf34dad87cbd27ab26121e91",
+          "size": 316
+        },
+        {
+          "name": "jump.png",
+          "sha256": "38c49419194fc0a4b2381d65eb94a7191d3e3ad26972f9723b9125393f1ebe3c",
+          "size": 240
+        },
+        {
+          "name": "party.png",
+          "sha256": "d8dbc94177990e2fae17b74b5a1aed81968f91ecb102d6e21029f7feb0084221",
+          "size": 398
+        },
+        {
+          "name": "peek.png",
+          "sha256": "543640d4c5f663797bb10b64222f2aa92f27505752ed5666c4fd4742f487edd2",
+          "size": 239
+        },
+        {
+          "name": "petted.png",
+          "sha256": "0ef463a61b8d845d2cdb2d5ac98a7d23b114f0f2cf71e31b2defcdac5b37ef48",
+          "size": 230
+        },
+        {
+          "name": "pout.png",
+          "sha256": "12980d7c3127b83f7821219e7be93483df1c73f15a3a2890f61f818041b3f4a2",
+          "size": 220
+        },
+        {
+          "name": "roll.png",
+          "sha256": "25c73b4fdbc87fd9d1cd0507e69328e9b0756dbbfc8793cbb825b9533bda2910",
+          "size": 1069
+        },
+        {
+          "name": "shy.png",
+          "sha256": "75aa94b89a8da80af8a8da90d4ba19d0f3f9bb97e22b067be4a68bac2610b747",
+          "size": 216
+        },
+        {
+          "name": "sit.png",
+          "sha256": "17a5c150dfb98df4d75ef99f4cf2f5501bef1d9d24f01608d3efad305840b795",
+          "size": 229
+        },
+        {
+          "name": "sleep.png",
+          "sha256": "e008e1793ab7f90dfe0c271063ea01ca14002e75e6f1698a5241947ae8a7b47e",
+          "size": 303
+        },
+        {
+          "name": "sneak.png",
+          "sha256": "d2551bc3899daad68daf22ded6fe0d7e8c3e26c8512fdf24cc4a71cedd256caa",
+          "size": 329
+        },
+        {
+          "name": "spin.png",
+          "sha256": "1a3e264736aae37a34a9b7d21ab6cd6951c474dd95792f0d6af119087456a4f9",
+          "size": 524
+        },
+        {
+          "name": "squish.png",
+          "sha256": "0395168d31d5a080e3966bae89a8f2b4564aa1eb927c1033000f9504c1d1b619",
+          "size": 220
+        },
+        {
+          "name": "stalk.png",
+          "sha256": "57b810a3587a71ccad944c0a3948fe4e34a24bacb4f43fba86ecc08f3658f53e",
+          "size": 328
+        },
+        {
+          "name": "startle.png",
+          "sha256": "ad2b7a98e7c7b13d5e866ab248748102ce0e19772a4da744b2af5f43629963bd",
+          "size": 244
+        },
+        {
+          "name": "stretch.png",
+          "sha256": "5d96370abf2c4972843b4fa23a99b61f5209930e6dd232770130641a91967db7",
+          "size": 336
+        },
+        {
+          "name": "talk.png",
+          "sha256": "b056dc4cfca6342c223fa7482b241bca1ae0d72df943f887b2cda18e3ae4f3de",
+          "size": 318
+        },
+        {
+          "name": "walk.png",
+          "sha256": "5503afce95344fcf5b6413803d700cbba5277f0b76d8b3721656af26b035357d",
+          "size": 365
+        },
+        {
+          "name": "wave.png",
+          "sha256": "e5b590f6baf66bf02c86fdc1bcc6cb353f1268e1cbe78865be58b98ccf3ce383",
+          "size": 313
+        },
+        {
+          "name": "work.png",
+          "sha256": "f3a747fca566e6af070510a86c0f552271cb928efb16d56d263184df0bf15bdc",
+          "size": 303
+        },
+        {
+          "name": "yawn.png",
+          "sha256": "2097a2c10e022226c58a092ac8080a0a85ac945aa01919fee082916934144d86",
+          "size": 420
+        }
+      ],
+      "names": {
+        "en": "Ghost",
+        "ko": "유령"
+      },
+      "preview": "preview.gif"
+    }
+  ]
+}

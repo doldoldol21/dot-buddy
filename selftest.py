@@ -277,30 +277,26 @@ leaks = sorted({l for c in cases for l in en_lines(*c) if hangul.search(l)})
 check("영어 — 한글 안 섞임", leaks, [])
 check("영어 — 문구가 나옴", all(en_lines(*c) for c in cases), True)
 
-# community characters: every pack in community/ passes the checks; installing from the list works, and a file that doesn't
-# match the list, an id with a path in it, or a folder the user made themselves is refused
-r = subprocess.run([sys.executable, "-I", os.path.join(HERE, "scripts", "community.py"), "check", "--app", BIN], capture_output=True, text=True, timeout=120)
-check("커뮤니티 — 꾸러미 검사", (r.returncode, r.stdout.count("FAIL")), (0, 0))
-sys.path.insert(0, os.path.join(HERE, "scripts")); import community as cm
-with tempfile.TemporaryDirectory() as td:
-    bad = os.path.join(td, "Bad_Name"); os.makedirs(bad)
-    open(os.path.join(bad, "idle.png"), "wb").write(b"not a png"); open(os.path.join(bad, "run.sh"), "w").write("echo hi")
-    open(os.path.join(bad, "chara.json"), "w").write('{"name": "x", "license": "GPL"}')
-    errs = " ".join(cm.check_pack(bad, set(cm.motions())))
-    check("커뮤니티 — 나쁜 꾸러미 걸러냄", [k in errs for k in ("folder name", "run.sh", "'author' is required", "'license' must be", "idle.png is not a PNG")], [True] * 5)
+# community characters (the client side; the pack rules are tested in dot-buddy/characters): installing from the list works,
+# and a file that doesn't match the list, an id with a path in it, or a folder the user made themselves is refused.
+# tests/fixtures/community is one pack and its index entry, copied from that repo.
+FIXTURE = os.path.join(HERE, "tests", "fixtures", "community")
+def motions():
+    src = open(os.path.join(HERE, "Sources", "Charas.swift"), encoding="utf-8").read()
+    return re.findall(r'\("([a-z]+)", T\(', src[src.index("let MOTIONS"):src.index("let MOTION_FALLBACK")])
 def community(base, charas, *args):
     env = dict(os.environ, DOTBUDDY_COMMUNITY_BASE=base, DOTBUDDY_CHARAS=charas)
     r = subprocess.run([BIN, *args], capture_output=True, text=True, timeout=30, env=env)
     return r.returncode, r.stdout.strip()
-base = "file://" + os.path.join(HERE, "community") + "/"
-ids = [p["id"] for p in json.load(open(os.path.join(HERE, "community", "index.json")))["packs"]]
+base = "file://" + FIXTURE + "/"
+ids = [p["id"] for p in json.load(open(os.path.join(FIXTURE, "index.json")))["packs"]]
 with tempfile.TemporaryDirectory() as td:
     ch = os.path.join(td, "charas")
     rc, out = community(base, ch, "--community-install", ids[0])
     st = json.loads(community(base, ch, "--community-list")[1])
     loaded = [c["id"] for c in json.loads(community(base, ch, "--charas")[1])["charas"]]
     check("커뮤니티 — 받기", (rc, out, [p["state"] for p in st if p["id"] == ids[0]], "pack:" + ids[0] in loaded), (0, "pack:" + ids[0], ["installed"], True))
-    src = os.path.join(td, "src"); shutil.copytree(os.path.join(HERE, "community"), src)
+    src = os.path.join(td, "src"); shutil.copytree(FIXTURE, src)
     open(os.path.join(src, ids[0], "idle.png"), "ab").write(b"x")                        # changed after the list was made
     idx = json.load(open(os.path.join(src, "index.json")))
     idx["packs"].append(dict(idx["packs"][0], id="../escape"))                             # a path in the id: left out of the list
@@ -323,9 +319,9 @@ with tempfile.TemporaryDirectory() as td:
     def inst(p):
         r = subprocess.run([BIN, "--install-chara", p], capture_output=True, text=True, timeout=30, env=dict(os.environ, DOTBUDDY_CHARAS=ch))
         return r.returncode, r.stdout.strip()
-    pack = os.path.join(td, "src", "buddy"); shutil.copytree(os.path.join(HERE, "community", ids[0]), pack)
+    pack = os.path.join(td, "src", "buddy"); shutil.copytree(os.path.join(FIXTURE, ids[0]), pack)
     open(os.path.join(pack, "run.sh"), "w").write("echo hi")
-    mo = set(cm.motions())
+    mo = set(motions())
     want = sorted(f for f in os.listdir(pack) if f == "chara.json" or (f.endswith(".png") and f[:-4] in mo))
     z = os.path.join(td, "buddy-share.zip"); subprocess.run(["ditto", "-c", "-k", "--keepParent", pack, z], check=True)
     r1 = inst(z); got1 = sorted(os.listdir(os.path.join(ch, "buddy")))
@@ -344,15 +340,6 @@ with tempfile.TemporaryDirectory() as td:
           ((0, "pack:buddy"), True, 0, False, (0, "custom:blob"), True, True))
     check("받은 캐릭터 설치 — 캐릭터 없는 zip·밖을 가리키는 경로는 거절", (r4[0], r5[0], os.path.exists(os.path.join(td, "evil.png")), sorted(os.listdir(ch))),
           (1, 1, False, ["blob.png", "buddy"]))
-
-# community pack rules: the same outline recolored is caught, different packs aren't; the motions people see most are required
-with tempfile.TemporaryDirectory() as td:
-    cp = os.path.join(td, ids[0] + "-copy"); shutil.copytree(os.path.join(HERE, "community", ids[0]), cp)
-    shapes = {i: cm.idle_shape(os.path.join(HERE, "community", i)) for i in ids}
-    os.remove(os.path.join(cp, "walk.png"))
-    errs = cm.check_pack(cp, set(cm.motions()))
-    check("커뮤니티 규칙 — 같은 윤곽·기본 동작", (cm.same_shape(shapes[ids[0]], cm.idle_shape(cp)), any(cm.same_shape(shapes[x], shapes[y]) for x in ids for y in ids if x < y),
-          all(shapes.values()), any("walk.png" in e for e in errs)), (True, False, True, True))
 
 if fails:
     print("FAIL\n  " + "\n  ".join(fails))
