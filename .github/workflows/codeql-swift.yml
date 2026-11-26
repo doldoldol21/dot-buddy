@@ -1,0 +1,33 @@
+name: CodeQL (Swift)
+
+# The Swift analysis builds the app on macOS and takes about 18 minutes, so it runs only when something that goes into
+# the app changes, plus once a week on everything. Python and the workflows are in codeql.yml.
+on:
+  push:
+    branches: [main]
+    paths: ["Sources/**", "build.sh", "charas/**", ".github/workflows/codeql-swift.yml"]
+  pull_request:
+    paths: ["Sources/**", "build.sh", "charas/**", ".github/workflows/codeql-swift.yml"]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (swift)
+    runs-on: macos-15
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: swift
+          build-mode: manual
+      - run: APP="$RUNNER_TEMP/Dot.app" FORCE=1 ./build.sh
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:swift
