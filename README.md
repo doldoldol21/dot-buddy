@@ -123,6 +123,20 @@ Release builds update themselves. Turn on **Update Automatically** in the right-
 
 Apps built from source never replace themselves; they just tell you a new version exists (`git pull && ./build.sh`).
 
+## Uninstall
+
+1. Right-click the pet and turn off **Launch at Login**, then choose **Quit**.
+2. Delete the app: `brew uninstall --cask dot-buddy` if you used Homebrew (`--zap` also removes the files in step 3), otherwise drag `Dot Buddy.app` from `~/Applications` (or `/Applications`) to the Trash.
+3. Remove what it keeps: your characters, session state and settings.
+
+```sh
+rm -rf ~/Library/Application\ Support/DotBuddy
+defaults delete io.github.doldoldol21.dot-buddy
+rm -f ~/.local/bin/dotbuddy ~/.local/bin/dotbuddy-hook   # only if you installed the command-line tools
+```
+
+Dot Buddy never edits Claude Code's settings or hooks, so there is nothing to undo there. If you hooked up another agent, remove the `dotbuddy-hook` lines you added to its config.
+
 ## Quick start
 
 1. Launch Dot Buddy. The pet drops onto your desktop.

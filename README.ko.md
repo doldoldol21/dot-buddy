@@ -119,6 +119,20 @@ macOS 14 이하에서는 앱을 Control-클릭하고 **열기**를 고르면 돼
 
 소스로 빌드한 앱은 스스로 바뀌지 않고 새 업데이트가 나왔다고만 알려 줘요(`git pull && ./build.sh`).
 
+## 지우기
+
+1. 펫을 오른쪽 클릭해 **로그인할 때 켜기**를 끄고 **종료**해요.
+2. 앱을 지워요. Homebrew 로 깔았으면 `brew uninstall --cask dot-buddy`(`--zap` 을 붙이면 3번 파일까지 지워요), 아니면 `~/Applications`(또는 `/Applications`)의 `Dot Buddy.app` 을 휴지통으로 옮겨요.
+3. 남은 것(내 캐릭터, 세션 상태, 설정)을 지워요.
+
+```sh
+rm -rf ~/Library/Application\ Support/DotBuddy
+defaults delete io.github.doldoldol21.dot-buddy
+rm -f ~/.local/bin/dotbuddy ~/.local/bin/dotbuddy-hook   # 명령줄 도구를 깔았을 때만
+```
+
+도트 친구는 Claude Code 설정이나 훅을 건드리지 않아서 거기서 되돌릴 건 없어요. 다른 에이전트를 연결했다면 그 설정에 넣은 `dotbuddy-hook` 줄을 지워요.
+
 ## 빠르게 시작하기
 
 1. 도트 친구를 켜요. 펫이 바탕화면에 떨어져요.
