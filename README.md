@@ -21,7 +21,7 @@ Dot Buddy lives on your desktop, walks along window edges and widgets, and watch
 
 - Native Swift app, zero third-party dependencies, builds from source in about a minute
 - Reads session files only; it never touches your agent's hooks or settings
-- No network connections, except an opt-in daily update check against GitHub
+- No network connections, except an opt-in update check against GitHub every 6 hours
 - English and Korean UI
 
 <p align="center"><a href="https://github.com/sponsors/doldoldol21"><img src="docs/media/sponsor.gif" width="560" alt="Sponsor Dot Buddy and get supporter-only characters"></a></p>
@@ -121,7 +121,7 @@ On macOS 14 and earlier, Control-click the app and choose **Open** instead. If y
 
 ## Updates
 
-Release builds update themselves. Turn on **Update Automatically** in the right-click menu (it's offered on first launch): once a day the pet checks GitHub, and when a new version is out it downloads it, checks its Ed25519 signature and bundle, and swaps it in while no agent is working (after three hours of waiting it swaps anyway), then says hello from the new version. **Check for Updates…** does the same on demand and installs right away. The previous version goes to the Trash.
+Release builds update themselves. Turn on **Update Automatically** in the right-click menu (it's offered on first launch): every 6 hours the pet checks GitHub, and when a new version is out it downloads it, checks its Ed25519 signature and bundle, and swaps it in while no agent is working (after three hours of waiting it swaps anyway), then says hello from the new version. **Check for Updates…** does the same on demand and installs right away. The previous version goes to the Trash.
 
 Apps built from source never replace themselves; they just tell you a new version exists (`git pull && ./build.sh`).
 
@@ -162,7 +162,7 @@ Other agents report their state through the CLI that ships inside the app (see [
 ### Privacy
 
 - **Read-only.** It never writes to `~/.claude`, never edits hooks, settings, `CLAUDE.md` or MCP config, and never adds anything to your agent's context.
-- **No network unless you allow updates.** On first launch it asks whether to check for updates. If you say yes, it looks at this repo's latest release on github.com once a day and sends nothing but its version (User-Agent). Otherwise it never connects anywhere, except when you open **More Characters…**, which reads the community list from [dot-buddy/characters](https://github.com/dot-buddy/characters). `build.sh` downloads the fonts at build time.
+- **No network unless you allow updates.** On first launch it asks whether to check for updates. If you say yes, it looks at this repo's latest release on github.com every 6 hours and sends nothing but its version (User-Agent). Otherwise it never connects anywhere, except when you open **More Characters…**, which reads the community list from [dot-buddy/characters](https://github.com/dot-buddy/characters). `build.sh` downloads the fonts at build time.
 - **What shows on screen.** Bubbles show session names and terminal tab titles, never file paths, commands or your questions. If you share your screen, those names are visible; set Chattiness to Off or quit the app before presenting.
 - Its own files live in `~/Library/Application Support/DotBuddy/` (characters, `tools.json`, state files written by `--report`).
 

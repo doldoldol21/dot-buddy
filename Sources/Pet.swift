@@ -2273,7 +2273,7 @@ final class Pet: NSObject, NSMenuDelegate {
     a.messageText = T("맥에 로그인할 때 도트 친구도 켤까요?", "Launch Dot Buddy at login?")
     a.informativeText = T("나중에 펫을 오른쪽 클릭해 바꿀 수 있어요.", "You can change this later by right-clicking the pet.")
     a.addButton(withTitle: T("켜기", "Launch at Login")); a.addButton(withTitle: T("나중에", "Not Now"))
-    let upd = NSButton(checkboxWithTitle: T("하루 한 번 업데이트를 확인하고, 쉬는 동안 알아서 설치(GitHub 에만 물어봐요)", "Check for new versions once a day and update while idle (asks GitHub only)"), target: nil, action: nil)
+    let upd = NSButton(checkboxWithTitle: T("몇 시간마다 업데이트를 확인하고, 쉬는 동안 알아서 설치(GitHub 에만 물어봐요)", "Check for new versions every few hours and update while idle (asks GitHub only)"), target: nil, action: nil)
     upd.state = .on; upd.sizeToFit(); a.accessoryView = upd
     NSApp.activate(ignoringOtherApps: true)
     let on = a.runModal() == .alertFirstButtonReturn
@@ -2319,7 +2319,7 @@ final class Pet: NSObject, NSMenuDelegate {
 
   // ---------- Updates (see Update.swift) ----------
   var availableUpdate: UpdateInfo?, updateTimer: Timer?, updating = false
-  /// Automatic checks: a day after the last one (or a minute after launch if that's overdue), then every 6 hours look again whether a day has passed
+  /// Automatic checks: every 6 hours (a minute after launch if one is overdue). One HEAD request to github.com; the install itself still waits until no agent is busy
   func startUpdateChecks() {
     updateTimer?.invalidate(); updateTimer = nil
     if let from = UD.string(forKey: "updatedFrom") {                              // first launch after a self-update
@@ -2328,7 +2328,7 @@ final class Pet: NSObject, NSMenuDelegate {
     }
     guard UD.bool(forKey: "autoUpdate") else { return }
     let tick = { [weak self] in
-      guard let self, Date().timeIntervalSince1970 - UD.double(forKey: "lastUpdateCheck") > 23 * 3600 else { return }
+      guard let self, Date().timeIntervalSince1970 - UD.double(forKey: "lastUpdateCheck") > 5.5 * 3600 else { return }   // a little under the timer's 6 hours (it may fire up to 10 minutes early)
       self.checkForUpdates(manual: false)
     }
     DispatchQueue.main.asyncAfter(deadline: .now() + 60, execute: tick)
