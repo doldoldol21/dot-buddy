@@ -481,7 +481,10 @@ final class Pet: NSObject, NSMenuDelegate {
       }
     case "menu" where prof:                                                          // For testing: open the pet's menu, close it after "seconds" (default 3)
       let secs = min(30, max(0.5, Double(text) ?? 3))
-      DispatchQueue.main.asyncAfter(deadline: .now() + secs) { [weak self] in self?.menuShown?.cancelTracking() }
+      DispatchQueue.main.asyncAfter(deadline: .now() + secs) { [weak self] in
+        self?.menuShown?.cancelTrackingWithoutAnimation()
+        if let e = NSEvent.otherEvent(with: .applicationDefined, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil, subtype: 0, data1: 0, data2: 0) { NSApp.postEvent(e, atStart: true) }   // with no mouse around (CI), the menu's tracking loop only notices the cancel on its next event
+      }
       DispatchQueue.main.async { [weak self] in self?.showMenu() }; return
     case "goto" where prof:                                                          // For testing (DOTBUDDY_PROF): drop it from above "x,y"
       let v = text.split(separator: ",").compactMap { Double($0) }; if v.count == 2 { pos = CGPoint(x: v[0], y: v[1]); floorID = nil; vel = .init(dx: 0, dy: 0); act = .fall }
