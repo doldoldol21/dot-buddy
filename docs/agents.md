@@ -290,7 +290,7 @@ Wrap any command line tool. Dot Buddy shows it as busy while it runs and done wh
 "$DOTBUDDY" --run --tool aider --name "fix flaky test" -- aider --message "fix the flaky test" --yes
 ```
 
-While running, the session is tied to the wrapper's process. When the command exits, the done state is tied to the shell you started it from, so it goes away when you close that shell, and clicking it jumps to that tab. The default tool name is the command's name and the default title is `<command> · <current folder>`.
+While running, the session is tied to the wrapper's process. When the command exits, the done state is tied to the terminal tab's shell, even when the wrapper ran inside a script, `make` or `sh -c`. It goes away when you close that tab, and clicking it jumps to that tab. Without a terminal (cron, or an agent running it as a tool call), the done state is tied to nothing and goes away 30 minutes after the command finished. The default tool name is the command's name and the default title is `<command> · <current folder>`.
 
 An alias makes it automatic:
 

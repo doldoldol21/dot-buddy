@@ -129,14 +129,43 @@ with tempfile.TemporaryDirectory() as td:
     check("꾸미기 — 칭찬 {n}", tlines("praise", "working=4", "tool=codex"), {"코덱스 4개 출동!"})
     check("꾸미기 — 없는 도구는 기본", any("끝났" in l or "완료" in l or "다 했" in l for l in tlines("done", "tool=other", "high=200")), True)
     check("꾸미기 — 클로드 이름 기본", all("클로드" in l for l in tlines("praise", "working=4", "tool=claude") if "군데" not in l and "굴리" not in l), True)
-# wrapping any CLI (--run): working while it runs (wrapper pid), done when it ends (calling shell pid), exit code passes through
+# following a transcript (Tail): gestures from tool calls, a helper finishing, errors, a background task's end; a line split across two writes
+with tempfile.TemporaryDirectory() as td:
+    tj = os.path.join(td, "t.jsonl"); open(tj, "w").write('{"type":"user","message":{"content":"old line, not read"}}\n')
+    J = lambda o: json.dumps(o, separators=(",", ":")) + "\n"
+    use = lambda i, n, inp={}: J({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": i, "name": n, "input": inp}]}})
+    res = lambda i, err=False, extra={}: J({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": i, "is_error": err, "content": "x" * 5000}]}, **extra})
+    pr = subprocess.Popen([BIN, "--tail-test", tj, "2.5"], stdout=subprocess.PIPE, text=True)
+    pr.stdout.readline()
+    with open(tj, "a") as f:
+        f.write(use("r1", "Read") + res("r1") + use("a1", "Agent", {"subagent_type": "Explore"}) + res("a1") + use("a2", "Agent") + res("a2", extra={"toolUseResult": {"isAsync": True}}))
+        f.write(use("b1", "Bash", {"command": "ls"}) + res("b1", err=True)); f.flush()
+        line = J({"type": "user", "message": {"content": "<task-notification>done</task-notification>"}})
+        f.write(line[:20]); f.flush(); time.sleep(0.6); f.write(line[20:]); f.flush()
+    out = pr.communicate(timeout=10)[0].split()
+    check("기록 따라 읽기 — 몸짓", out, ["read", 'agentStart("Explore")', "agentDone", 'agentStart("")', "shell", "error", "bgDone"])
+# wrapping any CLI (--run): working while it runs (wrapper pid), done when it ends — tied to the tab's shell (the outermost process on the
+# same terminal, so a short-lived sh -c or make in between doesn't drop it), or to nothing without a terminal; exit code passes through
 with tempfile.TemporaryDirectory() as td:
     env = {**os.environ, "DOTBUDDY_SESSIONS": td, "DOTBUDDY_QUIET": "1"}
-    r = subprocess.run([BIN, "--run", "--tool", "aider", "--name", "고치기", "--", "/bin/sh", "-c", 'cat "$DOTBUDDY_SESSIONS"/*.json'], capture_output=True, text=True, timeout=10, env=env)
+    r = subprocess.run([BIN, "--run", "--tool", "aider", "--name", "고치기", "--", "/bin/sh", "-c", 'cat "$DOTBUDDY_SESSIONS"/*.json'], capture_output=True, text=True, timeout=10, env=env, start_new_session=True)   # no terminal
     during = json.loads(r.stdout or "{}")
-    after = json.loads(open(os.path.join(td, f"aider-sh-{os.getpid()}.json")).read()) if os.path.exists(os.path.join(td, f"aider-sh-{os.getpid()}.json")) else {}
+    f = os.path.join(td, f"aider-sh-{os.getpid()}.json")
+    after = json.loads(open(f).read()) if os.path.exists(f) else {}
     check("감싸기 — 도는 동안", (during.get("status"), during.get("tool"), during.get("name")), ("busy", "aider", "고치기"))
-    check("감싸기 — 끝나면 셸에 묶임", (after.get("status"), after.get("pid")), ("idle", os.getpid()))
+    check("감싸기 — 터미널 없으면 어디에도 안 묶임", (after.get("status"), after.get("pid")), ("idle", None))
+    import pty                                                                  # in a terminal, from a script: sh (the tab's shell) → sh -c (gone at once) → --run
+    child, fd = pty.fork()
+    if child == 0:
+        os.environ.update(env)
+        os.execv("/bin/sh", ["sh", "-c", f'/bin/sh -c \'"{BIN}" --run --tool scripted -- /usr/bin/true; :\'; sleep 3'])
+    f = os.path.join(td, f"scripted-true-{child}.json")
+    for _ in range(40):
+        if os.path.exists(f) and json.loads(open(f).read() or "{}").get("status") == "idle": break
+        time.sleep(0.1)
+    after = json.loads(open(f).read()) if os.path.exists(f) else {}
+    check("감싸기 — 스크립트 안에서도 탭 셸에 묶임", (after.get("status"), after.get("pid")), ("idle", child))
+    os.kill(child, 9); os.waitpid(child, 0); os.close(fd)
     check("감싸기 — 종료 코드", subprocess.run([BIN, "--run", "--", "/bin/sh", "-c", "exit 3"], capture_output=True, timeout=10, env=env).returncode, 3)
     check("감싸기 — 없는 명령", subprocess.run([BIN, "--run", "--", "no-such-cmd-xyz"], capture_output=True, timeout=10, env=env).returncode, 127)
     check("감싸기 — 명령 없음", subprocess.run([BIN, "--run"], capture_output=True, timeout=10, env=env).returncode, 2)
@@ -369,6 +398,22 @@ with tempfile.TemporaryDirectory() as td:
           ((0, "pack:buddy"), True, 0, False, (0, "custom:blob"), True, True))
     check("받은 캐릭터 설치 — 캐릭터 없는 zip·밖을 가리키는 경로는 거절", (r4[0], r5[0], os.path.exists(os.path.join(td, "evil.png")), sorted(os.listdir(ch))),
           (1, 1, False, ["blob.png", "buddy"]))
+    if os.environ.get("CI"):                                                    # writes up to ~64 MB: CI only
+        # a zip whose listing claims 100 bytes but unpacks to 300 MB: refused, and the unpacking stops near the 64 MB cap
+        bz = os.path.join(td, "bomb.zip")
+        with zipfile.ZipFile(bz, "w", zipfile.ZIP_DEFLATED) as zf: zf.writestr("bomb/idle.png", bytes(300 << 20))
+        raw = bytearray(open(bz, "rb").read())
+        for sig, off in ((b"PK\x03\x04", 22), (b"PK\x01\x02", 24)):
+            i = raw.find(sig); raw[i + off:i + off + 4] = struct.pack("<I", 100)
+        open(bz, "wb").write(raw)
+        tmp = os.path.join(td, "tmp"); os.makedirs(tmp)
+        pr = subprocess.Popen([BIN, "--install-chara", bz], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=dict(os.environ, DOTBUDDY_CHARAS=ch, TMPDIR=tmp + "/"))
+        peak = 0
+        while pr.poll() is None:
+            peak = max(peak, sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(tmp) for f in fs if os.path.isfile(os.path.join(d, f))))
+            time.sleep(0.03)
+        pr.communicate(timeout=30)
+        check("받은 캐릭터 설치 — 크기를 속인 zip 은 풀다 멈춤", (pr.returncode, 1 << 20 < peak < 100 << 20, os.listdir(tmp), "bomb" in os.listdir(ch)), (1, True, [], False))
 
 if fails:
     print("FAIL\n  " + "\n  ".join(fails))

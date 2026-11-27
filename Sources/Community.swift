@@ -199,6 +199,26 @@ private func runTool(_ path: String, _ args: [String]) -> String? {
   return p.terminationStatus == 0 ? String(decoding: d, as: UTF8.self) : nil
 }
 
+/// Unpack a zip with a hard cap on what it writes. The listing's sizes are only what the zip claims, so they can't be trusted:
+/// each file is capped by the shell's file-size limit (the unpacker is killed past it) and the whole folder is measured while it unpacks
+private func unzipCapped(_ zip: URL, to dst: URL, max: Int) -> Bool {
+  let p = Process(); p.executableURL = URL(fileURLWithPath: "/bin/sh")
+  p.arguments = ["-c", "ulimit -f \(max / 512) && exec /usr/bin/ditto -x -k \"$1\" \"$2\"", "sh", zip.path, dst.path]   // paths as arguments, never in the script
+  p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
+  guard (try? p.run()) != nil else { return false }
+  var over = false
+  while p.isRunning {
+    Thread.sleep(forTimeInterval: 0.1)
+    var total = 0
+    if let e = FileManager.default.enumerator(at: dst, includingPropertiesForKeys: [.fileSizeKey]) {
+      for case let u as URL in e { total += (try? u.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0 }
+    }
+    if total > max { over = true; p.terminate(); break }
+  }
+  p.waitUntilExit()
+  return !over && p.terminationReason == .exit && p.terminationStatus == 0
+}
+
 /// Install a character from a .zip, a folder or a .png (call off the main thread). Returns the character id and its shown name
 func installDroppedChara(_ src: URL, dir: URL = CHARAS_DIR) -> Result<(String, String), CommunityError> {
   let fm = FileManager.default
@@ -216,7 +236,7 @@ func installDroppedChara(_ src: URL, dir: URL = CHARAS_DIR) -> Result<(String, S
     guard let names = runTool("/usr/bin/unzip", ["-Z1", src.path]),
           !names.split(separator: "\n").contains(where: { $0.hasPrefix("/") || $0.split(separator: "/").contains("..") }) else { return .failure(.bad(T("zip 안 경로가 이상해요", "a path in the zip points outside it"))) }
     let w = fm.temporaryDirectory.appendingPathComponent("dotbuddy-drop-\(UUID().uuidString)"); work = w
-    guard runTool("/usr/bin/ditto", ["-x", "-k", src.path, w.path]) != nil else { return .failure(.bad(T("zip 을 못 풀었어요", "can't unpack the zip"))) }
+    guard unzipCapped(src, to: w, max: DROP_MAX_UNZIPPED) else { return .failure(.bad(T("zip 을 못 풀었거나 풀면 너무 커요", "can't unpack the zip, or it unpacks too big"))) }
     root = w
   } else if !isDir(src) && src.pathExtension.lowercased() != "png" {
     return .failure(notFound)

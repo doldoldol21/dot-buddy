@@ -6,7 +6,7 @@
 selftest.py checks verdicts without launching the app; this one starts the app in a GUI session with its own session
 folders (no real Claude Code sessions), reports a fake session through the CLI and reads the app's test log
 (DOTBUDDY_PROF): the pet is placed, a "done" bubble shows with the session's name, the sound plays when it's turned on,
-today's count goes up, a question and a signal get through, and the app is still running at the end. Made for the macOS
+today's count goes up, a question and a signal get through, a question followed straight by done still counts, and the app is still running at the end. Made for the macOS
 runner in CI. On a managed work Mac, leave it to CI.
 """
 import os, subprocess, sys, tempfile, time
@@ -67,8 +67,11 @@ try:
         time.sleep(4)
         report("ask")
         wait_for("a question gets through", "  sound ask", 15)
+        time.sleep(3)
+        report("idle")                                                          # answered and finished with no "busy" seen in between
+        wait_for("done straight after a question counts", "  done-today 2", 10)
         subprocess.run([BIN, "--signal", "done", "smoke signal"], env=env, timeout=10)
-        wait_for("a signal counts as done", "  done-today 2", 10)
+        wait_for("a signal counts as done", "  done-today 3", 10)
         if SHOT:
             time.sleep(1)
             subprocess.run(["screencapture", "-x", SHOT], timeout=20)         # for a look in the run's artifacts; not checked

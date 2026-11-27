@@ -30,6 +30,18 @@ func alive(_ pid: Int32, before t: Double? = nil) -> Bool {
   guard let t, t > 0, let i = procInfo(pid) else { return true }
   return Double(i.pbi_start_tvsec) <= t + 5
 }
+/// The outermost ancestor of pid on the same terminal: the tab's shell (or its login), which lives as long as the tab.
+/// A `--run` from a script, make or `sh -c` has a short-lived parent; tying the finished report to that parent dropped it at once.
+/// 0 when pid has no terminal (cron, an agent's tool call)
+func tabShell(_ pid: Int32) -> Int32 {
+  guard let me = procInfo(pid), me.e_tdev != UInt32.max else { return 0 }
+  var best: Int32 = 0, p = pid
+  for _ in 0..<64 where p > 1 {
+    guard let i = procInfo(p), i.e_tdev == me.e_tdev else { break }
+    best = p; p = Int32(i.pbi_ppid)
+  }
+  return best
+}
 /// Controlling terminal "/dev/ttys003" — nil if none
 func ttyPath(_ pid: Int32) -> String? {
   guard let i = procInfo(pid), i.e_tdev != UInt32.max, let c = devname(dev_t(bitPattern: i.e_tdev), S_IFCHR) else { return nil }

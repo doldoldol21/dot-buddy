@@ -93,7 +93,7 @@ final class Pet: NSObject, NSMenuDelegate {
   var timer: Timer?
   var rate = 0.0
   var grabOffset = CGPoint.zero, grabStart = CGPoint.zero, samples: [(Double, CGPoint)] = []
-  var cheerUntil = 0.0, prevWaiting: Set<String> = [], polledOnce = false
+  var cheerUntil = 0.0, prevWaiting: Set<String> = [], prevAsking: Set<String> = [], polledOnce = false
   var notices: [Notice] = [], showing: Notice?, showUntil = 0.0
   let noticeSecs = 10.0                                                          // Completion notification bubble lasts 10 seconds (menu option removed)
   var noticeWin: PetWindow!, noticeView = NoticeView()
@@ -387,8 +387,11 @@ final class Pet: NSObject, NSMenuDelegate {
     let wasTop = onTop                                                           // Measure before reading the new list so changes can be detected
     list = l
     let waiting = Set(list.filter { $0.mood >= .wait }.map(\.id))
-    acked.formIntersection(waiting)
-    let fresh = list.filter { $0.mood >= .wait && !prevWaiting.contains($0.id) }
+    // Asked, then finished before any check saw it working again (an answered AskUserQuestion keeps Claude's status file at busy, so no file event comes until the end): that is a new "done"
+    let answered = Set(list.filter { $0.mood == .wait && prevAsking.contains($0.id) }.map(\.id))
+    acked.formIntersection(waiting); acked.subtract(answered)
+    notices.removeAll { $0.ask && answered.contains($0.id) }                      // its question is over
+    let fresh = list.filter { $0.mood >= .wait && (!prevWaiting.contains($0.id) || answered.contains($0.id)) }
     let wall = Date().timeIntervalSince1970                                       // Working time: since this app first saw it as 'working'
     var worked: [String: Double] = [:]
     for s in fresh { if let w0 = workStart[s.id] { worked[s.id] = wall - w0 } }
@@ -410,7 +413,7 @@ final class Pet: NSObject, NSMenuDelegate {
         DispatchQueue.main.async {
           guard let self else { return }
           let still = Set(self.list.filter { $0.mood >= .wait }.map(\.id))
-          for s in fresh where still.contains(s.id) && self.showing?.id != s.id && !self.notices.contains(where: { $0.id == s.id }) {   // a slow tab lookup can overlap the next poll's; queue a session once
+          for s in fresh where still.contains(s.id) && !([self.showing].compactMap { $0 } + self.notices).contains(where: { $0.id == s.id && $0.ask == (s.mood == .ask) }) {   // a slow tab lookup can overlap the next poll's; queue each question or "done" once
             let others = still.subtracting(self.acked).subtracting([s.id]).count
             self.notices.append(Notice(pid: s.pid, id: s.id, title: s.derived ? (titles[s.pid] ?? s.name) : s.name, ask: s.mood == .ask, worked: worked[s.id], others: others, tool: s.tool))
           }
@@ -418,9 +421,9 @@ final class Pet: NSObject, NSMenuDelegate {
       }
     }
     notices.removeAll { !waiting.contains($0.id) && !$0.id.hasPrefix("signal:") }   // No need to announce a session that went back to work (signal notifications are not sessions, so they stay as is)
-    if let n = showing, !waiting.contains(n.id), !n.id.hasPrefix("signal:") { hideNotice() }
+    if let n = showing, (!waiting.contains(n.id) && !n.id.hasPrefix("signal:")) || (n.ask && answered.contains(n.id)) { hideNotice() }
     polledOnce = true
-    prevWaiting = waiting
+    prevWaiting = waiting; prevAsking = Set(list.filter { $0.mood == .ask }.map(\.id))
     applyMood(wasTop: wasTop)
   }
   var lastMoodCheck = 0.0
@@ -975,7 +978,7 @@ final class Pet: NSObject, NSMenuDelegate {
     }
     if prof { let n = String(describing: act).components(separatedBy: "(")[0]; if n != lastActName { lastActName = n; FileHandle.standardError.write("  act \(n) y=\(Int(pos.y)) x=\(Int(pos.x)) floor=\(floorID ?? "-") up=\(upSince > 0 ? Int(t - upSince) : -1)/\(Int(upLimit))\n".data(using: .utf8)!) } }
     // Session changes arrive immediately as file events. This is a backup check for what events can't catch (falling asleep after 20 minutes, process death, waiting on a question)
-    if t - lastPoll > (list.contains { $0.mood == .work } ? 5 : 30) { poll() }
+    if t - lastPoll > (list.contains { $0.mood == .work || $0.mood == .ask } ? 5 : 30) { poll() }   // a question's answer shows only in the transcript, which isn't watched
     let hidden = !window.occlusionState.contains(.visible) && showing == nil && coveredPoints() >= 4   // Over the Dock (a full-screen transparent window), it is visible even if the system says 'occluded'; only when the body is actually covered
     escapes = escapes.filter { t - $0 < 20 }
     let busyScene = t < sceneActiveUntil || (hidden && hiddenSince > 0 && t - hiddenSince < 8)   // The window is moving or was just covered

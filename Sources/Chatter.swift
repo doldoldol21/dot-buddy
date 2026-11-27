@@ -21,13 +21,16 @@ final class Tail {
   let path: String
   private var offset: UInt64, buf = Data()
   private var src: DispatchSourceFileSystemObject?
-  private var tools: [String: String] = [:]           // tool_use id → name (when the result arrives, we know what finished)
-  let emit: (Chat) -> Void
+  private var tools: [String: String] = [:]           // tool_use id → name, only for Agent/Task (when its result arrives, a helper finished)
+  private let say: (Chat) -> Void
+  /// Reading and parsing run on their own queue (a tool result line can hold a whole file); only the chatter goes to main
+  private static let q = DispatchQueue(label: "dotbuddy.tail", qos: .utility)
+  private func emit(_ c: Chat) { let say = say; DispatchQueue.main.async { say(c) } }
   init?(path: String, emit: @escaping (Chat) -> Void) {
     guard let a = try? FileManager.default.attributesOfItem(atPath: path), let size = (a[.size] as? NSNumber)?.uint64Value else { return nil }
-    self.path = path; self.offset = size; self.emit = emit                 // old records are not read again
+    self.path = path; self.offset = size; self.say = emit                  // old records are not read again
     let fd = open(path, O_EVTONLY); guard fd >= 0 else { return nil }
-    let s = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .extend], queue: .main)
+    let s = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .extend], queue: Tail.q)
     s.setEventHandler { [weak self] in self?.kick() }
     s.setCancelHandler { close(fd) }
     s.resume(); src = s
@@ -38,9 +41,10 @@ final class Tail {
   private func kick() {
     guard !queued else { return }
     queued = true
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in self?.queued = false; self?.pull() }
+    Tail.q.asyncAfter(deadline: .now() + 0.25) { [weak self] in self?.queued = false; self?.pull() }
   }
   private static let marks = ["\"tool_use\"", "\"tool_result\"", "task-notification"].map { Data($0.utf8) }
+  private static let useMark = Data("\"tool_use\"".utf8), noteMark = Data("task-notification".utf8), errMark = Data("\"is_error\":true".utf8)
   private func pull() {
     guard let h = FileHandle(forReadingAtPath: path) else { return }
     defer { try? h.close() }
@@ -51,14 +55,18 @@ final class Tail {
     while offset < end, let d = try? h.read(upToCount: Int(min(end - offset, 512 * 1024))), !d.isEmpty {
       offset += UInt64(d.count); buf.append(d)
     }
-    while let nl = buf.firstIndex(of: 0x0a) {
-      let line = Data(buf[buf.startIndex..<nl]); buf.removeSubrange(buf.startIndex...nl)
-      if !line.isEmpty { handle(line) }
+    var start = buf.startIndex                                              // walk the lines, then drop them all at once (removing each from the front copied the rest every time)
+    while let nl = buf[start...].firstIndex(of: 0x0a) {
+      if nl > start { handle(Data(buf[start..<nl])) }
+      start = nl + 1
     }
+    buf.removeSubrange(buf.startIndex..<start)
     if buf.count > 4 * 1024 * 1024 { buf.removeAll() }                     // drop a huge line with no line break
   }
   private func handle(_ line: Data) {
     guard Tail.marks.contains(where: { line.range(of: $0) != nil }) else { return }    // most lines need no parsing
+    if line.range(of: Tail.useMark) == nil, line.range(of: Tail.noteMark) == nil,          // only tool results: all that matters is an error or a helper finishing
+       line.range(of: Tail.errMark) == nil, tools.isEmpty { return }
     guard let j = try? JSONSerialization.jsonObject(with: line) as? [String: Any], let m = j["message"] as? [String: Any] else { return }
     if j["type"] as? String == "user", let text = m["content"] as? String, text.contains("<task-notification>") { emit(.bgDone); return }
     guard let content = m["content"] as? [[String: Any]] else { return }
@@ -66,7 +74,7 @@ final class Tail {
       switch b["type"] as? String {
       case "tool_use"?:
         let name = b["name"] as? String ?? "", inp = b["input"] as? [String: Any] ?? [:]
-        if let id = b["id"] as? String { tools[id] = name }
+        if name == "Agent" || name == "Task", let id = b["id"] as? String { tools[id] = name }
         switch name {
         case "Read", "Grep", "Glob", "NotebookRead": emit(.read)
         case "Edit", "Write", "MultiEdit", "NotebookEdit": emit(.edit)

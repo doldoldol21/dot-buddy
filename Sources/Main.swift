@@ -143,13 +143,14 @@ struct Main {
     }
     if a.count >= 2 && a[1] == "--run" {
       // wrap any CLI as a session: --run [--tool NAME] [--name NAME] [--label DISPLAY_NAME] -- <command …>
-      //   working while it runs; when it ends it becomes done and is tied to that shell's pid (dropped when the shell closes; clicking goes to that tab).
+      //   working while it runs; when it ends it becomes done and is tied to the tab's shell (dropped when the tab closes; clicking goes to that tab).
+      //   Without a terminal it is tied to nothing and drops 30 minutes after it finished.
       //   The command's input, output and exit code pass through unchanged. If nonzero, an 'error' gesture is sent too (not sent with DOTBUDDY_QUIET — for tests)
       guard let sep = a.firstIndex(of: "--"), sep + 1 < a.count else { print(T("쓰는 법: --run [--tool 이름] [--name 이름] [--label 보일 이름] -- <명령 …>", "Usage: --run [--tool NAME] [--name NAME] [--label DISPLAY_NAME] -- <command ...>")); exit(2) }
       let head = Array(a[..<sep]), cmd = Array(a[(sep + 1)...])
       func opt(_ k: String) -> String { head.firstIndex(of: k).flatMap { $0 + 1 < head.count ? head[$0 + 1] : nil } ?? "" }
       let base = (cmd[0] as NSString).lastPathComponent, tool = opt("--tool").isEmpty ? base : opt("--tool")
-      let sid = "\(base)-\(getppid())", name = opt("--name").isEmpty ? "\(base) · \((FileManager.default.currentDirectoryPath as NSString).lastPathComponent)" : opt("--name")
+      let owner = tabShell(getppid()), sid = "\(base)-\(owner > 0 ? owner : getppid())", name = opt("--name").isEmpty ? "\(base) · \((FileManager.default.currentDirectoryPath as NSString).lastPathComponent)" : opt("--name")
       try? ReportSource.write(tool: tool, id: sid, status: "busy", name: name, label: opt("--label"), pid: getpid())
       signal(SIGINT, { _ in }); signal(SIGQUIT, { _ in })                          // ^C goes to the command (exec restores the default behavior) and the wrapper leaves its end state
       var child: pid_t = 0
@@ -162,7 +163,7 @@ struct Main {
         while waitpid(child, &st, 0) == -1 && errno == EINTR {}
         code = (st & 0x7f) == 0 ? (st >> 8) & 0xff : 128 + (st & 0x7f)            // if killed by a signal, 128 + signal, like a shell
       } else { FileHandle.standardError.write("\(cmd[0]): \(String(cString: strerror(rc)))\n".data(using: .utf8)!) }
-      try? ReportSource.write(tool: tool, id: sid, status: "idle", name: name, label: opt("--label"), pid: getppid())
+      try? ReportSource.write(tool: tool, id: sid, status: "idle", name: name, label: opt("--label"), pid: owner)
       if code != 0, ProcessInfo.processInfo.environment["DOTBUDDY_QUIET"] == nil { DistributedNotificationCenter.default().postNotificationName(SIGNAL_NAME, object: String(decoding: try! JSONSerialization.data(withJSONObject: ["kind": "event", "text": "error", "from": tool]), as: UTF8.self), userInfo: nil, deliverImmediately: true) }
       exit(code)
     }
@@ -315,6 +316,14 @@ struct Main {
       let fb = { (n: String) in (MOTION_FALLBACK[n] ?? []).joined(separator: " → ") }
       for (n, d) in MOTIONS { print("| `\(n)` | \(d.components(separatedBy: " → ")[0]) | \(fb(n).isEmpty ? (n == "idle" ? "—" : "idle") : fb(n) + " → idle") |") }
       return
+    }
+    if a.count >= 3 && a[1] == "--tail-test" {
+      // test hook: follow a transcript the way a working session is followed and print the chatter it causes; the caller appends lines after "ready"
+      var got: [String] = []
+      guard let tl = Tail(path: a[2], emit: { got.append("\($0)") }) else { exit(1) }
+      print("ready"); fflush(stdout)
+      RunLoop.main.run(until: Date(timeIntervalSinceNow: Double(a.count >= 4 ? a[3] : "") ?? 3)); tl.stop()
+      print(got.joined(separator: "\n")); exit(0)
     }
     if a.count >= 3 && a[1] == "--bubble-preview" {                                // bubble tail in three directions (down, left, right) at 4x
       registerFont(); FONT_FAMILY = 1; TEXT_SIZE = 1
