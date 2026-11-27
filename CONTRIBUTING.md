@@ -21,6 +21,7 @@ Out of scope:
 - Network features beyond the update check: accounts, sync, analytics, telemetry, remote services
 - Tools unrelated to watching agents: to-do lists, timers, reminders, notes, clipboard, music
 - Reading more of your data than showing session status needs
+- Accessories worn every day or by the time of day, like a nightcap at night (see [Accessories are for special days](#accessories-are-for-special-days))
 
 Not sure whether an idea fits? Open an issue and ask before writing code.
 
@@ -102,6 +103,14 @@ let lines = T(["안녕", "반가워"], ["hi", "hey there"])   // the two lists c
 - Check both with `DOTBUDDY_LANG=ko` and `DOTBUDDY_LANG=en`.
 - If you don't write Korean, put your English in both slots and say so in the pull request. Someone will translate it.
 - Keep lines short; bubbles are small. The pet never repeats file paths, commands or question text.
+
+## Accessories are for special days
+
+Hats and other accessories are an easter egg, like a holiday logo on a search page: they show up only on special days (the launch, Christmas, New Year) and then go away. Don't add one that's worn every day or at a time of day; a surprise that's always there stops being one.
+
+- Each accessory has a date range, checked in one function (`partySeason`, `christmasSeason` in `Sources/Bubble.swift`) with a test in `selftest.py` for the days on both edges.
+- It's drawn in code over any character, not by changing the character's pictures.
+- **Turn Off Accessories** in the menu turns all of them off, lines for those days included.
 
 ## Characters and copyright
 
