@@ -105,6 +105,7 @@ struct Ctx {
   var hour = Calendar.current.component(.hour, from: Date()), minute = Calendar.current.component(.minute, from: Date())
   var weekday = Calendar.current.component(.weekday, from: Date())   // 1 Sunday … 7 Saturday
   var month = Calendar.current.component(.month, from: Date()), day = Calendar.current.component(.day, from: Date())
+  var year = Calendar.current.component(.year, from: Date())
   var seasonal = SEASONAL               // seasonal lines (December, New Year) unless turned off in the menu
 }
 /// Mutterings that show each character's personality (mixed in when idle)
@@ -155,7 +156,9 @@ func seasonLines(_ x: Ctx) -> [String] {
   case (12, 31): return T(["올해 마지막 날이야!", "올해도 수고 많았어", "내년에도 같이 하자~"], ["Last day of the year!", "You did great this year", "Let's do next year together~"])
   case (1, 1): return T(["새해 복 많이 받아!", "올해도 잘 부탁해~", "새해 목표 세웠어?"], ["Happy New Year!", "Here's to a great year~", "Any New Year's resolutions?"])
   case (12, 1...23): return T(["모자 어때? 잘 어울려?", "크리스마스가 다가온다~", "눈 왔으면 좋겠다", "캐럴 듣고 싶어", "산타 모자 따뜻해"], ["Like my hat?", "Christmas is coming~", "I hope it snows", "Feels like carol season", "This Santa hat is cozy"])
-  default: return []
+  default:
+    guard partySeason(year: x.year, month: x.month, day: x.day), Int.random(in: 0..<4) == 0 else { return [] }   // three months is long: now and then, not half of every muttering
+    return T(["파티 모자 어때?", "오픈 기념 파티 중!", "와 줘서 고마워~", "새 친구들이 생기면 좋겠다"], ["Like my party hat?", "Launch party!", "Thanks for having me~", "Hope we make new friends"])
   }
 }
 var LAST_LINES: [String] = []

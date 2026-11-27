@@ -109,7 +109,7 @@ struct Main {
         case "fast": x.fast = p[1] == "1"
         case "hour": x.hour = Int(p[1]) ?? x.hour; x.minute = 0
         case "weekday": x.weekday = Int(p[1]) ?? x.weekday
-        case "date": let md = p[1].split(separator: "-").compactMap { Int($0) }; if md.count == 2 { x.month = md[0]; x.day = md[1] }   // date=12-25
+        case "date": let md = p[1].split(separator: "-").compactMap { Int($0) }; if md.count == 2 { x.month = md[0]; x.day = md[1] } else if md.count == 3 { x.year = md[0]; x.month = md[1]; x.day = md[2] }   // date=12-25 or 2026-12-25
         case "seasonal": x.seasonal = p[1] == "1"
         case "mood": x.mood = ["work": .work, "wait": .wait, "ask": .ask][p[1]] ?? .sleep
         default: break
@@ -228,6 +228,7 @@ struct Main {
       let (n, rest) = mergeNotices(f, Array(ns.dropFirst()))
       print(n.title); print(rest.map(\.title).joined(separator: ",")); exit(0)
     }
+    if a.count == 5 && a[1] == "--party-season", let y = Int(a[2]), let m = Int(a[3]), let d = Int(a[4]) { exit(partySeason(year: y, month: m, day: d) ? 0 : 1) }   // test hook: --party-season <year> <month> <day>
     if a.count == 4 && a[1] == "--snow-time", let m = Int(a[2]), let mi = Int(a[3]) { exit(snowTime(month: m, minute: mi) ? 0 : 1) }   // test hook: --snow-time <month> <minute>
     if a.count == 4 && a[1] == "--version-newer" { exit(versionNewer(a[2], than: a[3]) ? 0 : 1) }
     if a.count >= 3 && a[1] == "--demo-gif" {                                      // README demo animation: --demo-gif <out.gif> [hero|characters|chara:<id>]
@@ -285,11 +286,11 @@ struct Main {
     }
     if a.count >= 3 && a[1] == "--fx-sheet" {
       // character effect preview: --fx-sheet <png> — packs (rows) × [error 0.2·0.5 · done 0.3·0.6] (frames), 6x
-      let charas = loadCustomCharas(), ks: [(Int, Double)] = [(1, 0.2), (1, 0.5), (2, 0.3), (2, 0.6), (-1, 0), (-2, 0), (-3, 0), (-4, 0), (-5, 0.3)], S = 6   // -1 sleeping cap · -2 mug · -3 Santa hat · -4 Santa hat facing left · -5 snow
+      let charas = loadCustomCharas(), ks: [(Int, Double)] = [(1, 0.2), (1, 0.5), (2, 0.3), (2, 0.6), (-1, 0), (-2, 0), (-3, 0), (-4, 0), (-5, 0.3), (-6, 0), (-7, 0)], S = 6   // -1 sleeping cap · -2 mug · -3 Santa hat · -4 Santa hat facing left · -5 snow · -6 party hat · -7 party hat facing left
       guard !charas.isEmpty, let ctx = CGContext(data: nil, width: CW * S * ks.count, height: CH * S * charas.count, bitsPerComponent: 8, bytesPerRow: 0, space: RGB_SPACE, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { exit(1) }
       ctx.setFillColor(CGColor(red: 0.62, green: 0.74, blue: 0.55, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: CW * S * ks.count, height: CH * S * charas.count)); ctx.interpolationQuality = .none
       for (r, ch) in charas.enumerated() { for (c, (f, k)) in ks.enumerated() {
-        var p = Pose(); if f > 0 { p.fx = f; p.fxK = k } else if f == -1 { p.nightcap = true; p.eyes = .closed } else if f == -5 { p.santa = true; p.snow = k } else if f <= -3 { p.santa = true; p.look = f == -4 ? -1 : 0 } else { p.mug = 0 }
+        var p = Pose(); if f > 0 { p.fx = f; p.fxK = k } else if f == -1 { p.nightcap = true; p.eyes = .closed } else if f == -5 { p.santa = true; p.snow = k } else if f <= -6 { p.party = true; p.look = f == -7 ? -1 : 0 } else if f <= -3 { p.santa = true; p.look = f == -4 ? -1 : 0 } else { p.mug = 0 }
         if let img = draw(ch, p).image() { ctx.draw(img, in: CGRect(x: c * CW * S, y: (charas.count - 1 - r) * CH * S, width: CW * S, height: CH * S)) }
       } }
       if let img = ctx.makeImage() { writePNG(img, a[2]) }
@@ -417,6 +418,8 @@ struct Main {
       p = Pose(); p.squash = -1; p.eyes = .closed; p.hands = true; p.sink = 8; poses.append(p)  // sinking into the floor
       p = Pose(); p.eyes = .wide; p.icon = 1; poses.append(p)                                   // light bulb
       p = Pose(); p.shake = 1; p.icon = 2; poses.append(p)                                      // question mark
+      p = Pose(); p.party = true; poses.append(p)                                               // launch party hat
+      p = Pose(); p.party = true; p.look = -1; p.laptop = 1; poses.append(p)                    // party hat, facing left, working
       let charas = CHARAS + loadCustomCharas()
       let S = 6, W = CW * S * poses.count, H = CH * S * charas.count
       guard let ctx = CGContext(data: nil, width: W, height: H, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }

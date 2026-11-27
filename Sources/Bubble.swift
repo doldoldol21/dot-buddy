@@ -176,6 +176,12 @@ let UD = UserDefaults.standard
 var SEASONAL: Bool { UD.object(forKey: "seasonal") == nil || UD.bool(forKey: "seasonal") }
 /// December 1-26: the pet wears a Santa hat
 func christmasSeason(month: Int, day: Int) -> Bool { month == 12 && day <= 26 }
+/// Launch party: a party hat from the open-source launch for three months, except while the Santa hat is on (December 1-26)
+let PARTY_FROM = 20261126, PARTY_UNTIL = 20270225
+func partySeason(year: Int, month: Int, day: Int) -> Bool {
+  let n = year * 10000 + month * 100 + day
+  return n >= PARTY_FROM && n <= PARTY_UNTIL && !christmasSeason(month: month, day: day)
+}
 /// December: a light snow around the pet for one minute in every five (not all the time, so it stays a small surprise)
 func snowTime(month: Int, minute: Int) -> Bool { month == 12 && minute % 5 == 0 }
 let BUNDLE_ID = "io.github.doldoldol21.dot-buddy", OLD_BUNDLE_IDS = ["dev.personal.dot-buddy"]

@@ -163,7 +163,7 @@ with tempfile.TemporaryDirectory() as td:
 # gesture signals from other agents: unknown names are refused (valid names would reach the real app, so they are not sent here)
 check("몸짓 신호 — 모르는 이름 거절", subprocess.run([BIN, "--signal", "event", "dance"], capture_output=True, timeout=10).returncode, 2)
 check("몸짓 신호 — 빈 이름 거절", subprocess.run([BIN, "--signal", "event"], capture_output=True, timeout=10).returncode, 2)
-lunch = [l for l in subprocess.run([BIN, "--lines", "idle", "hour=12", "weekday=3"], capture_output=True, text=True, timeout=10).stdout.split("\n") if l]
+lunch = [l for l in subprocess.run([BIN, "--lines", "idle", "hour=12", "weekday=3", "seasonal=0"], capture_output=True, text=True, timeout=10).stdout.split("\n") if l]
 check("점심 — 배고파 류가 자주", sum(any(k in l for k in ["배고파", "점심", "꼬르륵", "밥 먹", "배에서"]) for l in lunch) > len(lunch) * 0.3, True)
 check("밤 — 점심 말 없음", any("점심" in l for l in lines("idle", "hour=23", "weekday=3")), False)
 check("캐릭터 혼잣말 — 촛불", any("꺼질" in l or "촛농" in l or "밝혀" in l or "불 조심" in l for l in lines("idle", "chara=candle", "hour=16", "weekday=3")), True)
@@ -282,6 +282,10 @@ leaks = sorted({l for c in cases for l in en_lines(*c) if hangul.search(l)})
 check("영어 — 한글 안 섞임", leaks, [])
 check("영어 — 문구가 나옴", all(en_lines(*c) for c in cases), True)
 xmas = re.compile("Christmas|presents|Cake")
+party_days = [("2026", "11", "25"), ("2026", "11", "26"), ("2026", "12", "10"), ("2026", "12", "27"), ("2027", "1", "1"), ("2027", "2", "25"), ("2027", "2", "26"), ("2027", "11", "26")]
+check("계절 — 오픈 기념 파티 모자는 2026-11-26~2027-02-25, 산타 모자 기간(12/1~26)은 빼고", [run_ok("--party-season", *d) for d in party_days], [False, True, False, True, True, True, False, False])
+check("계절 — 파티 기간 말, 끄면 안 나옴", (any("party" in l.lower() for l in en_lines("idle", "date=2027-01-15", "hour=15")), any("party" in l.lower() for l in en_lines("idle", "date=2027-01-15", "hour=15", "seasonal=0")),
+      any("party" in l.lower() for l in en_lines("idle", "date=2027-03-15", "hour=15"))), (True, False, False))
 check("계절 — 눈은 12월에, 5분에 1분만", [run_ok("--snow-time", m, mi) for m, mi in [("12", "0"), ("12", "35"), ("12", "3"), ("11", "0"), ("1", "5")]], [True, True, False, False, False])
 check("계절 — 크리스마스·새해에만, 끄면 안 나옴", (any(xmas.search(l) for l in en_lines("idle", "date=12-25", "hour=15")), any(xmas.search(l) for l in en_lines("idle", "date=12-25", "hour=15", "seasonal=0")),
       any(xmas.search(l) for l in en_lines("idle", "date=7-1", "hour=15")), any("New Year" in l for l in en_lines("idle", "date=1-1", "hour=15"))), (True, False, False, True))

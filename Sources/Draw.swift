@@ -9,11 +9,14 @@ import ServiceManagement
 /// leaf on top of the head do not wear a cap
 func drawProps(_ cv: inout Canvas, _ ch: Chara, _ p: Pose, _ cx0: Int) {
   let id = ch.id.replacingOccurrences(of: "pack:", with: ""), d = p.look < 0 ? -1 : 1, cx = cx0 + p.shake
-  if p.nightcap || p.santa, !["candle", "sprout"].contains(id), ch.kind != .candle, ch.kind != .sprout {
-    // The head: the first row with 4 solid dots in a row near the middle, so steam, a stem or a wisp doesn't hold the cap up in the air
-    let solid = { (y: Int) -> Bool in var run = 0; for x in max(0, cx - 8)...min(CW - 1, cx + 8) { if cv.alpha(x, y) >= 0xf0 { run += 1; if run >= 4 { return true } } else { run = 0 } }; return false }
-    let head = ch.sprite != nil ? ((cv.top..<GY).first(where: solid) ?? cv.top) : cv.top
-    let hy = head + 1, b = -d                                                         // The cone droops away from the facing direction
+  let capOK = !["candle", "sprout"].contains(id) && ch.kind != .candle && ch.kind != .sprout
+  // The head: the first row with 4 solid dots in a row near the middle, so steam, a stem or a wisp doesn't hold the cap up in the air
+  func headRow(_ cv: Canvas) -> Int {
+    func solid(_ y: Int) -> Bool { var run = 0; for x in max(0, cx - 8)...min(CW - 1, cx + 8) { if cv.alpha(x, y) >= 0xf0 { run += 1; if run >= 4 { return true } } else { run = 0 } }; return false }
+    return ch.sprite != nil ? ((cv.top..<GY).first(where: solid) ?? cv.top) : cv.top
+  }
+  if p.nightcap || p.santa, capOK {
+    let hy = headRow(cv) + 1, b = -d                                                         // The cone droops away from the facing direction
     let band = rgba("#f4f1ea"), pom = rgba("#ffffff")
     let (c1, c2, line) = p.santa ? (rgba("#d8383b"), rgba("#ee5a50"), rgba("#7a1d24")) : (rgba("#5b7fd6"), rgba("#8fb0f0"), rgba("#34407a"))
     for x in -5...5 { cv.set(cx + x, hy, band); cv.set(cx + x, hy + 1, band) }                  // White band (two rows)
@@ -21,6 +24,20 @@ func drawProps(_ cv: inout Canvas, _ ch: Chara, _ p: Pose, _ cx0: Int) {
     for (j, r) in rows { for x in r { cv.set(cx + x * b, hy - j, x == r.lowerBound || j == 5 ? line : ((x + j) % 3 == 0 ? c2 : c1)) } }   // The striped cone droops backward
     for (x, y) in [(8, 4), (9, 4), (8, 3), (9, 3), (8, 5), (9, 5)] { cv.set(cx + x * b, hy - y + 1, pom) }   // White pom-pom
     cv.top = min(cv.top, hy - 5)
+  } else if p.party, capOK {
+    // Party hat: an upright striped cone with a pom-pom, the tip leaning a little toward where it looks
+    let hy = headRow(cv) + 1
+    let (line, c1, c2, dot, pom) = (rgba("#2f3a78"), rgba("#4f8fe6"), rgba("#ffd84a"), rgba("#ff6fa8"), rgba("#ffffff"))
+    let rows: [ClosedRange<Int>] = [-4...4, -3...3, -3...3, -2...2, -2...2, -1...1, -1...1, 0...0]   // row 0 is the rim, on the top of the head
+    for (j, r) in rows.enumerated() {
+      let sx = j >= 5 ? d : 0
+      for x in r {
+        let c = x == r.lowerBound || x == r.upperBound || j == 0 && abs(x) == 4 ? line : (x - j + 30) % 4 == 0 ? c2 : (x + j + 30) % 5 == 0 ? dot : c1
+        cv.set(cx + x + sx, hy - j, c)
+      }
+    }
+    for (x, y) in [(0, 8), (1, 8), (0, 9), (1, 9)] { cv.set(cx + d + (d < 0 ? x - 1 : x), hy - y, pom) }
+    cv.top = min(cv.top, hy - 9)
   }
   if p.mug >= 0 {
     let mx = cx + 9 * d - (d < 0 ? 4 : 0), y0 = GY - 4
@@ -124,6 +141,7 @@ struct Pose: Hashable {
   var sink = 0                                       // Rows sunk below the floor (nothing is drawn below the floor)
   var nightcap = false, mug = -1                     // Time-of-day props: nightcap (night / sleeping) and mug (morning, steam beat 0 or 1)
   var santa = false                                  // Seasonal: Santa hat (December, see christmasSeason)
+  var party = false                                  // Launch party hat (see partySeason); the nightcap wins at night
   var snow = -1.0                                    // Seasonal: snowflakes drifting down, 0 to 1 cycle (December, see snowTime)
   var fx = 0, fxK = 0.0                              // Character effect: 1 error, 2 done; fxK is progress 0 to 1
   var icon = 0, iconBob = 0                          // Icon above the head: 1 light bulb (flash of insight), 2 question mark (head tilt)
