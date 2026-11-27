@@ -100,7 +100,7 @@ func noticeImage(_ lines: [(String, CGColor)], fill: CGColor, edge: CGColor, sid
 }
 struct BubbleSpec { var lines: [(String, CGColor)], fill: CGColor, edge: CGColor, side = 0, check = false, reveal = Int.max, tail = 0 }   // Text and colors used to redraw the bubble
 struct Notice { let pid: Int32, id: String, title: String, ask: Bool; var worked: Double? = nil; var others = 0; var tool = ""   // tool: which agent the notice is from (for decoration)
-  var ids: [String] = [], openTool: String? = nil, tty: String? = nil, app: String? = nil   // merged bubble: every session in it, and the tool to open the first with; tty/app as seen when the notice was made (used if the agent has quit by the time it is clicked)
+  var ids: [String] = [], openTool: String? = nil, tty: String? = nil, app: String? = nil; var permission = false   // permission: the question is a tool waiting for your OK. Merged bubble: every session in it, and the tool to open the first with; tty/app as seen when the notice was made (used if the agent has quit by the time it is clicked)
   var members: [String] { ids.isEmpty ? [id] : ids }
 }
 /// Last line of a notice, chosen to fit the intent: for a question, a phrase saying it waits for an answer; when done, a phrase matching the elapsed time, time of day and backlog count
@@ -121,6 +121,7 @@ func doneLine(_ n: Notice, hour h: Int = Calendar.current.component(.hour, from:
     LAST_LINES = Array((LAST_LINES + [pick]).suffix(5)); return pick
   }
   let st = toolStyle(n.tool)
+  if n.ask, n.permission, st.ask.isEmpty { return any(T(["허락을 기다려요", "실행해도 될까요?", "승인해 주세요", "허락이 필요해요"], ["Needs your OK", "OK to run this?", "Waiting for approval", "Asking permission"])) }
   if n.ask { return any(st.ask.isEmpty ? T(["질문 있어요", "물어볼 게 있대요", "골라 주세요!", "확인이 필요해요", "대답 기다려요"], ["I have a question", "Needs your input", "Please pick one!", "Needs a check", "Waiting for your answer"]) : st.ask) }
   if !st.done.isEmpty { let base = any(st.done); return n.others > 0 ? base + " (+\(n.others))" : base }
   var a: [String]

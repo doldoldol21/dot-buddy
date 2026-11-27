@@ -8,7 +8,7 @@ enum Mood: Int, Comparable { case sleep = 0, free, work, wait, ask          // f
   static func < (a: Mood, b: Mood) -> Bool { a.rawValue < b.rawValue }
   var label: String { T(["쉬는 중", "노는 중", "일하는 중", "다 했어요", "질문 있어요"], ["Resting", "Playing", "Working", "Done", "Has a question"])[rawValue] }
 }
-struct Sess { let pid: Int32, id: String, name: String, mood: Mood, since: Double, derived: Bool; var tool = "claude", label = T("클로드", "Claude") }   // tool: which source (agent) the session comes from; label: the name used when it speaks
+struct Sess { let pid: Int32, id: String, name: String, mood: Mood, since: Double, derived: Bool; var tool = "claude", label = T("클로드", "Claude"); var why = "" }   // why: what a waiting session waits for ("permission" = a tool needs your OK)   // tool: which source (agent) the session comes from; label: the name used when it speaks
 
 // ---------- Session sources ----------
 // Each agent has one place to read its sessions from. A new agent can either (1) add a source that follows this protocol to SOURCES, or
@@ -111,7 +111,7 @@ final class Sessions: SessionSource {   // Claude Code
     root = URL(fileURLWithPath: env ?? (NSHomeDirectory() + "/.claude"))
   }
   /// Result of reading one session file — not re-read while the modification time is unchanged
-  private struct Rec { let mtime: Date, pid: Int32, sid: String, name: String, status: String, at: Double, started: Double, derived: Bool, interactive: Bool }
+  private struct Rec { let mtime: Date, pid: Int32, sid: String, name: String, status: String, at: Double, started: Double, derived: Bool, interactive: Bool; var waitingFor = "" }
   private var recs: [String: Rec] = [:]
   private var askCache: [String: (UInt64, Bool)] = [:]
   private var jsonlMiss: [String: Double] = [:]                               // when the transcript file was not found — do not scan again for 30 seconds
@@ -138,16 +138,17 @@ final class Sessions: SessionSource {   // Claude Code
         let at = raw > now + 60 ? 0 : min(now, raw)                               // more than 1 minute in the future (clock set back) counts as long ago — so idle sessions do not all fire a "done" notification at once
         r = Rec(mtime: mt, pid: pid, sid: sid, name: name, status: j["status"] as? String ?? "idle",
                 at: at, started: ((j["startedAt"] as? NSNumber)?.doubleValue).map { $0 / 1000 } ?? 0, derived: (j["nameSource"] as? String) == "derived",
-                interactive: (j["kind"] as? String).map { $0 == "interactive" } ?? true)
+                interactive: (j["kind"] as? String).map { $0 == "interactive" } ?? true, waitingFor: j["waitingFor"] as? String ?? "")
         recs[key] = r
       }
       guard let x = r, x.interactive, alive(x.pid, before: x.started) else { continue }   // dropped if the pid has been reused by another process
       let idle = now - x.at                                                       // after finishing, wait 5 minutes for the user to check, then just play until 20 minutes (so it does not keep nagging)
       let untouched = x.status == "idle" && x.started > 0 && x.at - x.started < 3          // Claude writes "idle" as it starts: a session nobody has used yet is not a "done"
-      var mood: Mood = x.status == "idle" ? (idle < 5 * 60 && !untouched ? .wait : idle < 20 * 60 ? .free : .sleep) : .work
-      if mood == .work && pendingAsk(x.sid) { mood = .ask }
+      var mood: Mood = x.status == "idle" ? (idle < 5 * 60 && !untouched ? .wait : idle < 20 * 60 ? .free : .sleep) : x.status == "waiting" ? .ask : .work
+      if mood == .work && pendingAsk(x.sid) { mood = .ask }                     // older Claude Code without "waiting": an unanswered AskUserQuestion in the transcript
       lastMood[key] = mood
-      out.append(Sess(pid: x.pid, id: x.sid, name: x.name, mood: mood, since: x.at, derived: x.derived))
+      // Claude Code writes status "waiting" with waitingFor "permission prompt" (a tool needs your OK), "input needed" (a question) or "dialog open"
+      out.append(Sess(pid: x.pid, id: x.sid, name: x.name, mood: mood, since: x.at, derived: x.derived, why: mood == .ask && x.waitingFor.hasPrefix("permission") ? "permission" : ""))
     }
     recs = recs.filter { seen.contains($0.key) }; lastMood = lastMood.filter { seen.contains($0.key) }
     let sids = Set(recs.values.map(\.sid))                                      // discard the cache of vanished sessions (so it does not grow when left running for a long time)

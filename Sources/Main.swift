@@ -117,7 +117,8 @@ struct Main {
       }
       if a[2] == "done" {                                                            // last line of the notification: high=seconds worked, waiting=number of other waiting sessions, mood=ask
         let tl = a.first { $0.hasPrefix("tool=") }.map { String($0.dropFirst(5)) } ?? ""
-        for _ in 0..<200 { print(doneLine(Notice(pid: 0, id: "x", title: "", ask: x.mood == .ask, worked: Double(x.high), others: x.waiting, tool: tl), hour: 14)) }
+        let perm = a.contains("perm=1")                                              // perm=1: the question is a permission prompt
+        for _ in 0..<200 { print(doneLine(Notice(pid: 0, id: "x", title: "", ask: x.mood == .ask, worked: Double(x.high), others: x.waiting, tool: tl, permission: perm), hour: 14)) }
         return
       }
       if a[2] == "praise" {                                                          // praise: working=number of sessions, agents=number of friends, record=1
@@ -193,7 +194,7 @@ struct Main {
     }
     if a.count >= 2 && a[1] == "--state" {
       let l = readAll(makeSources())
-      let j: [String: Any] = ["mood": "\(l.first?.mood ?? .sleep)", "sessions": l.map { ["name": $0.name, "mood": "\($0.mood)", "pid": Int($0.pid), "tool": $0.tool, "label": $0.label] }]
+      let j: [String: Any] = ["mood": "\(l.first?.mood ?? .sleep)", "sessions": l.map { ["name": $0.name, "mood": "\($0.mood)", "pid": Int($0.pid), "tool": $0.tool, "label": $0.label, "why": $0.why] }]
       print(String(decoding: try! JSONSerialization.data(withJSONObject: j, options: [.sortedKeys]), as: UTF8.self))
       return
     }

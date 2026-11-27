@@ -36,7 +36,7 @@ One pet shows the most urgent state across all sessions.
 
 | State | When | What you see |
 |---|---|---|
-| Question | A session is waiting for your answer | `?` bubble, the pet waves at you. Left unanswered for 45 seconds, it comes over to your cursor (even on another monitor) and calls you, up to 3 times |
+| Question | A session is waiting for your answer, or for your OK to run a tool | `?` bubble, the pet waves at you. Left unanswered for 45 seconds, it comes over to your cursor (even on another monitor) and calls you, up to 3 times |
 | Done | A session finished and you haven't looked yet | "Done!" bubble with the session name, a ✓ badge with the count |
 | Busy | At least one session is working | Laptop out, typing; small reactions to reads, edits, tests and commits |
 | Many sessions | Several sessions running at once | It cheers you on (and remembers today's record) |
@@ -152,7 +152,7 @@ On first launch the pet introduces itself in a few bubbles, then asks whether to
 
 Dot Buddy reads Claude Code's own session files instead of installing hooks:
 
-- `~/.claude/sessions/*.json` gives each running session's status (`busy` or `idle`), name and process ID. It honors `CLAUDE_CONFIG_DIR`.
+- `~/.claude/sessions/*.json` gives each running session's status (`busy`, `idle`, or `waiting` with what it waits for, such as a permission prompt), name and process ID. It honors `CLAUDE_CONFIG_DIR`.
 - A session whose process is gone drops off. A session idle for 20 minutes counts as resting.
 - To notice a pending question, it reads the last 64 KB of that session's transcript and looks for an unanswered `AskUserQuestion`.
 - While a session is working, it follows new lines appended to the transcript and reacts to tool use (reading, editing, testing, committing, subagents, errors). It never reads the earlier history. Set Chattiness to Off to stop this.

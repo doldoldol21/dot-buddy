@@ -417,7 +417,7 @@ final class Pet: NSObject, NSMenuDelegate {
           let still = Set(self.list.filter { $0.mood >= .wait }.map(\.id))
           for s in fresh where still.contains(s.id) && !([self.showing].compactMap { $0 } + self.notices).contains(where: { $0.id == s.id && $0.ask == (s.mood == .ask) }) {   // a slow tab lookup can overlap the next poll's; queue each question or "done" once
             let others = still.subtracting(self.acked).subtracting([s.id]).count
-            self.notices.append(Notice(pid: s.pid, id: s.id, title: s.derived ? (titles[s.pid] ?? s.name) : s.name, ask: s.mood == .ask, worked: worked[s.id], others: others, tool: s.tool, tty: routes[s.pid]?.0, app: routes[s.pid]?.1))
+            self.notices.append(Notice(pid: s.pid, id: s.id, title: s.derived ? (titles[s.pid] ?? s.name) : s.name, ask: s.mood == .ask, worked: worked[s.id], others: others, tool: s.tool, tty: routes[s.pid]?.0, app: routes[s.pid]?.1, permission: s.why == "permission"))
           }
         }
       }
@@ -867,7 +867,11 @@ final class Pet: NSObject, NSMenuDelegate {
     calling = false
     act = .react(.wave, t, 1.8)
     guard chatty > 0, showing == nil else { return }
-    let who = waitingAgent(ask: true), mins = Int((t - askSince) / 60)
+    let who = waitingAgent(ask: true), mins = Int((t - askSince) / 60), asking = list.filter { $0.mood == .ask }
+    if !asking.isEmpty, asking.allSatisfy({ $0.why == "permission" }) {          // a tool waiting for your OK
+      say(any(T(["여기요! \(ga(who)) 허락을 기다려요", "저기요~ \(who) 실행 허락이 필요해요"] + (mins >= 1 ? ["\(ga(who)) 허락을 기다린 지 \(mins)분 됐어요"] : []),
+                ["Over here! \(who) needs your OK", "Psst, \(who) is waiting for approval"] + (mins >= 1 ? ["\(who) has waited \(mins) min for your OK"] : []))), t); return
+    }
     say(any(mins >= 1 ? T(["여기요! \(ga(who)) 물어볼 게 있대요", "\(ga(who)) 대답을 기다린 지 \(mins)분 됐어요", "저기요~ \(ga(who)) 아직 기다려요"], ["Over here! \(who) has a question", "\(who) has been waiting \(mins) min", "Psst, \(who) is still waiting"])
                       : T(["여기요! \(ga(who)) 물어볼 게 있대요", "저기요~ \(ga(who)) 대답을 기다려요"], ["Over here! \(who) has a question", "Psst, \(who) is waiting on you"])), t)
   }
@@ -1783,7 +1787,8 @@ final class Pet: NSObject, NSMenuDelegate {
   func stepBadge(_ p: Pose) {
     guard p.bubble != .none else { if !badgeKey.isEmpty { badgeKey = ""; badgeSpec = nil; badgeWin.orderOut(nil) }; return }
     let who = waitingAgent(ask: p.bubble == .ask)
-    let key = "\(p.bubble)|\(p.count)|\(who)|\(TEXT_SIZE)|\(textDot)|\(FONT_FAMILY)"   // Text changes only when the badge newly appears or the count changes (when it changed by itself it looked like a new notification)
+    let asking = list.filter { $0.mood == .ask }, perm = p.bubble == .ask && !asking.isEmpty && asking.allSatisfy { $0.why == "permission" }   // every waiting question is a tool asking for your OK
+    let key = "\(p.bubble)|\(p.count)|\(who)|\(perm)|\(TEXT_SIZE)|\(textDot)|\(FONT_FAMILY)"   // Text changes only when the badge newly appears or the count changes (when it changed by itself it looked like a new notification)
     if key != badgeKey {
       let what = "\(p.bubble)|\(p.count)"
       if what != badgeWhat { badgeWhat = what; badgeSeed &+= 1 }
@@ -1792,6 +1797,8 @@ final class Pet: NSObject, NSMenuDelegate {
       func pick(_ a: [String]) -> String { a[badgeSeed % a.count] }
       let (text, ink, fill): (String, CGColor, CGColor) = {
         switch p.bubble {
+        case .ask where perm: return (pick(n == 1 ? T(["\(ga(who)) 허락을 기다려요", "\(who) 실행 허락이 필요해요"], ["\(who) needs your OK", "\(who) is waiting for approval"])
+                                                   : T(["\(who) \(n)곳이 허락을 기다려요", "\(who) 허락 \(n)건 대기 중"], ["\(n) \(who) sessions need your OK", "\(n) approvals waiting on you"])), cg("#9a7414"), cg("#fbf0d2"))
         case .ask: return (pick(n == 1 ? T(["\(ga(who)) 물어볼 게 있대요", "\(ga(who)) 대답을 기다려요", "\(who) 질문이 하나 있어요"], ["\(who) has a question", "\(who) is waiting on you", "\(who) needs your answer"])       // Attach the agent name so even a first-time user knows who is waiting
                                        : T(["\(who) \(n)곳이 대답을 기다려요", "\(who) 질문이 \(n)개예요", "\(who) \(n)곳이 물어볼 게 있대요"], ["\(n) \(who) sessions need you", "\(who) has \(n) questions", "\(n) questions from \(who)"])), cg("#9a7414"), cg("#fbf0d2"))
         case .bang: return ("!", cg("#c9504a"), cg("#fffaf0"))

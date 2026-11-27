@@ -72,6 +72,16 @@ try:
         mood, m = state(root)
         check("shell·sdk", (mood, "막 끝남" in m, m["질문"]), ("work", False, "work"))
 
+        # Claude Code 2.1+ writes status "waiting" while it waits on you: a tool's permission prompt, or a question
+        def sessw(pid, sid, name, why, file):
+            with open(os.path.join(sd, f"{file}.json"), "w") as f:
+                json.dump({"pid": pid, "sessionId": sid, "name": name, "status": "waiting", "waitingFor": why, "kind": "interactive", "statusUpdatedAt": now}, f)
+        sessw(os.getppid(), "p", "허락 대기", "permission prompt", "p"); sessw(os.getppid(), "i", "입력 대기", "input needed", "i")
+        d = state(root, full=True)
+        w = {s["name"]: (s["mood"], s["why"]) for s in d["sessions"]}
+        check("waiting — 권한·질문", (d["mood"], w.get("허락 대기"), w.get("입력 대기")), ("ask", ("ask", "permission"), ("ask", "")))
+        os.remove(os.path.join(sd, "p.json")); os.remove(os.path.join(sd, "i.json"))
+
         # Claude writes "idle" the moment a session starts: one nobody has used yet is resting, not "done" (it used to fire a done notice)
         sess(os.getppid(), "g", "막 켬", "idle", 0.01, started=now - 700, file="g")
         sess(os.getppid(), "h", "일하고 끝남", "idle", 0.01, file="h")
@@ -116,6 +126,7 @@ check("바쁠 때 — 심심 없음", any("심심" in l for l in lines("idle", "
 check("창 위 — 창 얘기", any("창" in l or "전망" in l for l in lines("idle", "on=window", "high=300")), True)
 check("알림 — 금방 끝남", all(any(k in l for k in ["금방", "벌써", "후딱"]) for l in lines("done", "high=10")), True)
 check("알림 — 오래 걸림", all(any(k in l for k in ["드디어", "긴 작업", "오래", "해냈"]) for l in lines("done", "high=3000")), True)
+check("알림 — 권한 대기는 허락 문구", all(any(k in l for k in ["허락", "실행해도", "승인"]) for l in lines("done", "mood=ask", "perm=1")), True)
 check("알림 — 질문은 끝났다고 안 함", any("끝" in l for l in lines("done", "mood=ask")), False)
 check("알림 — 밀린 수", all(l.endswith("(+2)") for l in lines("done", "high=200", "waiting=2")), True)
 check("칭찬 — 세션 수", all("4" in l for l in lines("praise", "working=4")), True)
