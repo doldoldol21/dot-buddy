@@ -17,7 +17,7 @@ BIN = os.path.join(APP, "Contents", "MacOS", "DotBuddy")
 NAME = "smoke-test"
 
 work = tempfile.mkdtemp(prefix="dotbuddy-smoke-")
-env = dict(os.environ, DOTBUDDY_PROF="1", DOTBUDDY_CLAUDE_DIR=os.path.join(work, "claude"),
+env = dict(os.environ, DOTBUDDY_PROF="1", DOTBUDDY_PRESENT="1", DOTBUDDY_CLAUDE_DIR=os.path.join(work, "claude"),
            DOTBUDDY_SESSIONS=os.path.join(work, "sessions"))
 for d in ("claude", "sessions"):
     os.makedirs(os.path.join(work, d))

@@ -1437,13 +1437,16 @@ final class Pet: NSObject, NSMenuDelegate {
   }
   /// When the user comes back after being away over 5 minutes, greet them with a wave (only reads the input device history, no permission needed)
   var awayChecking = false
+  /// DOTBUDDY_PRESENT=1: always treat the user as present (the CI runner never touches the mouse, so after 5 minutes it looked away and held every bubble)
+  let present = ProcessInfo.processInfo.environment["DOTBUDDY_PRESENT"] != nil
   func stepAway(_ t: Double) {
     guard t - lastIdleCheck > 2, !awayChecking else { return }
     lastIdleCheck = t; awayChecking = true
+    let here = present
     sceneQ.async { [weak self] in                                                    // Session and input queries (a few ms) run off main
       let locked = (CGSessionCopyCurrentDictionary() as? [String: Any])?["CGSSessionScreenIsLocked"] as? Bool ?? false
       let kinds: [CGEventType] = [.mouseMoved, .keyDown, .leftMouseDown, .scrollWheel]
-      let idle = kinds.map { CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: $0) }.min() ?? 0
+      let idle = here ? 0 : kinds.map { CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: $0) }.min() ?? 0
       DispatchQueue.main.async { self?.awayChecking = false; self?.applyAway(locked: locked, idle: idle) }
     }
   }
@@ -1459,8 +1462,10 @@ final class Pet: NSObject, NSMenuDelegate {
       say(any(T(["땡! \(hourName(hh))예요", "\(hourName(hh)) 정각!", "벌써 \(hourName(hh))!", "\(hourName(hh))이에요~ 쉬엄쉬엄"], ["Ding! It's \(hEn)!", "\(hEn) on the dot!", "It's \(hEn) already!", "It's \(hEn). Take it easy~"])), t)
       if floor != nil, !uninterruptible { act = .react(.hop, t, 0.7) }
     }
+    let wasAway = away
     if idle > 300 { away = true; welcomeDue = false }
     else if away && idle < 4 { away = false; welcomeDue = true }
+    if prof, away != wasAway { FileHandle.standardError.write("  away \(away ? 1 : 0) idle=\(Int(idle))\n".data(using: .utf8)!) }
     if welcomeDue, !away {                                                          // greet once it is free (mid-jump or climbing, it waits for the next check instead of dropping the "N finished" line)
       guard floor != nil, !uninterruptible else { return }
       welcomeDue = false
