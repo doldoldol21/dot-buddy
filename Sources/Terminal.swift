@@ -81,7 +81,7 @@ func cmuxSurfaces(_ cmux: String) -> [(ws: [String: Any], s: [String: Any])] {
 }
 func cmuxFocus(_ cmux: String?, tty: String) -> Bool {
   guard let cmux else { return false }
-  for (ws, s) in cmuxSurfaces(cmux) where (s["tty"] as? String).map({ tty.hasSuffix($0) || $0.hasSuffix(tty) }) == true {
+  for (ws, s) in cmuxSurfaces(cmux) where (s["tty"] as? String).map({ !$0.isEmpty && !tty.isEmpty && (tty.hasSuffix($0) || $0.hasSuffix(tty)) }) == true {   // an empty tty (a browser pane) would match anything
     guard let wref = ws["ref"] as? String, let sref = s["ref"] as? String else { continue }
     _ = run(cmux, ["select-workspace", "--workspace", wref])
     _ = run(cmux, ["focus-panel", "--panel", sref, "--workspace", wref])

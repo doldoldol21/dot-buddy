@@ -177,6 +177,8 @@ var SEASONAL: Bool { UD.object(forKey: "seasonal") == nil || UD.bool(forKey: "se
 /// December 1-26: the pet wears a Santa hat
 func christmasSeason(month: Int, day: Int) -> Bool { month == 12 && day <= 26 }
 /// Launch party: a party hat from the open-source launch for three months, except while the Santa hat is on (December 1-26)
+/// Season dates are Gregorian even when the Mac is set to another calendar (Japanese, Buddhist, Hebrew…), in the current time zone
+func gregorian() -> Calendar { var c = Calendar(identifier: .gregorian); c.timeZone = .current; return c }
 let PARTY_FROM = 20261126, PARTY_UNTIL = 20270225
 func partySeason(year: Int, month: Int, day: Int) -> Bool {
   let n = year * 10000 + month * 100 + day

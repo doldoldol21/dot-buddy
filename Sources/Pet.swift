@@ -241,7 +241,15 @@ final class Pet: NSObject, NSMenuDelegate {
     poll(); refreshFloors(force: true); applyLevel()
     startUpdateChecks()
     window.orderFrontRegardless()
-    NotificationCenter.default.addObserver(forName: .NSSystemTimeZoneDidChange, object: nil, queue: .main) { _ in NSTimeZone.resetSystemTimeZone() }   // Even if the time zone changes while running (travel), time-of-day text and on-the-hour notifications follow the new time zone
+    NotificationCenter.default.addObserver(forName: .NSSystemTimeZoneDidChange, object: nil, queue: .main) { _ in NSTimeZone.resetSystemTimeZone() }
+    // Screen locked or displays asleep: nobody can see the pet, so it rests (see tickBody). These come at once; the 2 second check in stepAway stays as the backup
+    let rest: [(NotificationCenter, Notification.Name, (Pet) -> Void)] = [
+      (NSWorkspace.shared.notificationCenter, NSWorkspace.screensDidSleepNotification, { $0.displaysAsleep = true }),
+      (NSWorkspace.shared.notificationCenter, NSWorkspace.screensDidWakeNotification, { $0.displaysAsleep = false; $0.wakeUp() }),
+      (DistributedNotificationCenter.default(), Notification.Name("com.apple.screenIsLocked"), { $0.screenLocked = true }),
+      (DistributedNotificationCenter.default(), Notification.Name("com.apple.screenIsUnlocked"), { $0.screenLocked = false; $0.wakeUp() }),
+    ]
+    for (c, name, f) in rest { c.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in if let self { f(self) } } }   // Even if the time zone changes while running (travel), time-of-day text and on-the-hour notifications follow the new time zone
     NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
       guard let self else { return }                                                   // Desktop switch: all windows change at once; don't be startled, just land at the new spot
       self.spaceChangedAt = self.now; self.lastFloors = 0; self.sceneActiveUntil = self.now + 3
@@ -402,7 +410,7 @@ final class Pet: NSObject, NSMenuDelegate {
         DispatchQueue.main.async {
           guard let self else { return }
           let still = Set(self.list.filter { $0.mood >= .wait }.map(\.id))
-          for s in fresh where still.contains(s.id) {
+          for s in fresh where still.contains(s.id) && self.showing?.id != s.id && !self.notices.contains(where: { $0.id == s.id }) {   // a slow tab lookup can overlap the next poll's; queue a session once
             let others = still.subtracting(self.acked).subtracting([s.id]).count
             self.notices.append(Notice(pid: s.pid, id: s.id, title: s.derived ? (titles[s.pid] ?? s.name) : s.name, ask: s.mood == .ask, worked: worked[s.id], others: others, tool: s.tool))
           }
@@ -418,7 +426,7 @@ final class Pet: NSObject, NSMenuDelegate {
   var lastMoodCheck = 0.0
   var bannerOn = false, lastBannerCheck = 0.0, bannerChecking = false, missedBanners = 0
   func stepBanner(_ t: Double) {
-    guard extNotif, !bannerChecking, t - lastBannerCheck > 1.5 else { return }
+    guard extNotif, !bannerChecking, t - lastBannerCheck > (hiddenSince > 0 || mood == .sleep ? 6 : 1.5) else { return }   // Covered or asleep: a banner matters less, so look less often
     lastBannerCheck = t; bannerChecking = true
     sceneQ.async { [weak self] in
       let ws = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
@@ -771,7 +779,10 @@ final class Pet: NSObject, NSMenuDelegate {
   var pocketSince = 0.0, pocketFloor = ""
   var upSince = 0.0, downSince = 0.0, upLimit = 60.0                             // When up on a window or widget / when down on the floor / limit for staying up
   var mouseScr = -1, mouseScrSince = 0.0, lastScrCheck = 0.0, nextMigrate = 0.0
-  var screenLocked = false, escapes: [Double] = []
+  var screenLocked = false, displaysAsleep = false, escapes: [Double] = []
+  var resting: Bool { screenLocked || displaysAsleep }
+  /// Back from rest: re-measure the windows and pick up the normal frame rate at once
+  func wakeUp() { guard !resting else { return }; lastFloors = 0; lastTick = now; schedule(1.0 / 30); tick() }
   // ---- Reaction sources: always on as a built-in app feature (they react automatically when connected; the menu 'extensions' option was removed) ----
   let extClaude = true      // Claude Code sessions (work, completion, questions, chatter)
   let extNotif = true         // React when a Mac notification banner appears (content is not read)
@@ -951,6 +962,11 @@ final class Pet: NSObject, NSMenuDelegate {
       schedule(min(5, max(0.5, snoozeUntil - t))); return
     }
     if snoozed { snoozed = false; window.orderFrontRegardless(); applyLevel(); cheerUntil = t + 1.5; say(T("나 왔어!", "I'm back!"), t) }
+    if resting {                                                                    // Locked or displays asleep: no drawing, no window scans; sessions still arrive by file events, with the slow backup poll
+      stepAway(t)
+      if t - lastPoll > 30 { poll() }
+      lastTick = t; schedule(5); return
+    }
     if prof {                                                                       // Teleport detection: if moved more than 25pt in one tick, what moved it
       let n0 = String(describing: act).components(separatedBy: "(")[0]
       let jump = hypot(pos.x - profPos.x, pos.y - profPos.y)
@@ -1386,7 +1402,9 @@ final class Pet: NSObject, NSMenuDelegate {
   }
   func applyAway(locked: Bool, idle: Double) {
     let t = now
+    let wasResting = resting
     screenLocked = locked                                                         // Lock screen: the screen is locked, not the pet being covered
+    if wasResting, !resting { DispatchQueue.main.async { [weak self] in self?.wakeUp() } }   // after the rest of this check (the welcome-back wave)
     let cal = Calendar.current, now0 = Date(), hh = cal.component(.hour, from: now0)
     if cal.component(.minute, from: now0) == 0, lastHourSaid != hh, !away, !screenLocked, chatty > 0, showing == nil {   // On-the-hour notification
       lastHourSaid = hh
@@ -1614,7 +1632,7 @@ final class Pet: NSObject, NSMenuDelegate {
     }
     if t - fxT0 < 2.5 { p.fx = fx; p.fxK = (t - fxT0) / 2.5 }                     // Character effects (error rain, completion flowers, etc.)
     if t - propHourAt > 30 {                                                        // Re-read the time only every 30 seconds
-      propHourAt = t; let now = Calendar.current.dateComponents([.year, .minute, .month, .day], from: Date())
+      propHourAt = t; let now = gregorian().dateComponents([.year, .minute, .month, .day], from: Date())
       partyOn = SEASONAL && partySeason(year: now.year ?? 0, month: now.month ?? 0, day: now.day ?? 0)
       santaOn = SEASONAL && christmasSeason(month: now.month ?? 0, day: now.day ?? 0)
       snowOn = SEASONAL && snowTime(month: now.month ?? 0, minute: now.minute ?? 1)
@@ -1683,6 +1701,7 @@ final class Pet: NSObject, NSMenuDelegate {
     let p = pose(t)
     var q = p                                                                    // Compare continuous values in frame units (same image is not redrawn)
     q.z = (p.z * 20).rounded(.down); q.sparkle = (p.sparkle * 20).rounded(.down); q.hearts = (p.hearts * 30).rounded(.down); q.notes = (p.notes * 24).rounded(.down); q.snow = (p.snow * 45).rounded(.down)
+    q.snot = (p.snot * 12).rounded(.down); q.sweat = (p.sweat * 20).rounded(.down); q.dust = (p.dust * 10).rounded(.down); q.confetti = (p.confetti * 20).rounded(.down)
     stepBadge(p)
     if q != lastPose || chara.id != lastChara || lastKey.isEmpty {
       if chara.id != lastChara || lastKey.isEmpty { drawCache.removeAll() }                 // Cleared when the character or size changes
@@ -2275,7 +2294,7 @@ final class Pet: NSObject, NSMenuDelegate {
   var idleWaitSince = 0.0
   static let INSTALL_WAIT = 3.0 * 3600
   func installWhenIdle() {
-    guard availableUpdate != nil, !updating else { return }
+    guard availableUpdate != nil, !updating, UD.bool(forKey: "autoUpdate") else { idleWaitSince = 0; return }   // turned off while waiting: drop the pending install
     let busy = list.contains(where: { $0.mood == .work || $0.mood == .ask }) || showing != nil || !notices.isEmpty   // any session still working or asking (the pet's own mood shows only the most urgent one)
     if idleWaitSince == 0 { idleWaitSince = Date().timeIntervalSince1970 }
     if busy, Date().timeIntervalSince1970 - idleWaitSince < Pet.INSTALL_WAIT {

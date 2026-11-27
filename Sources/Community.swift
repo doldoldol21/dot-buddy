@@ -159,18 +159,21 @@ func installCommunityPack(_ p: CommunityPack, dir: URL = CHARAS_DIR) -> Result<S
     }
   }
   try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-  let tmp = dir.appendingPathComponent(".incoming-\(UUID().uuidString)"), dst = dir.appendingPathComponent(p.id)
-  defer { try? fm.removeItem(at: tmp) }
+  let tmp = dir.appendingPathComponent(".incoming-\(UUID().uuidString)"), dst = dir.appendingPathComponent(p.id), old = dir.appendingPathComponent(".old-\(UUID().uuidString)")
+  defer { try? fm.removeItem(at: tmp); try? fm.removeItem(at: old) }
   do {
     try fm.createDirectory(at: tmp, withIntermediateDirectories: true)
     for (n, d) in got { try d.write(to: tmp.appendingPathComponent(n)) }
     let marker: [String: Any] = ["id": p.id, "digest": p.digest, "author": p.author, "license": p.license, "source": COMMUNITY_BASE + p.id + "/"]
     try JSONSerialization.data(withJSONObject: marker, options: [.sortedKeys]).write(to: tmp.appendingPathComponent(COMMUNITY_MARKER))
-    if fm.fileExists(atPath: dst.path) { try fm.removeItem(at: dst) }         // only a pack we installed before (checked above)
+    if fm.fileExists(atPath: dst.path) { try fm.moveItem(at: dst, to: old) }   // only a pack we installed before (checked above); kept aside until the new one loads
     try fm.moveItem(at: tmp, to: dst)
-  } catch { return .failure(.bad(error.localizedDescription)) }
-  // The pack must load like any other; if it doesn't, take it out again
-  guard loadCharas(in: dir).contains(where: { $0.id == "pack:" + p.id }) else { try? fm.removeItem(at: dst); return .failure(.bad("it doesn't load")) }
+  } catch { if fm.fileExists(atPath: old.path), !fm.fileExists(atPath: dst.path) { try? fm.moveItem(at: old, to: dst) }; return .failure(.bad(error.localizedDescription)) }
+  // The pack must load like any other; if it doesn't, put the old version back
+  guard loadCharas(in: dir).contains(where: { $0.id == "pack:" + p.id }) else {
+    try? fm.removeItem(at: dst); if fm.fileExists(atPath: old.path) { try? fm.moveItem(at: old, to: dst) }
+    return .failure(.bad("it doesn't load"))
+  }
   return .success("pack:" + p.id)
 }
 

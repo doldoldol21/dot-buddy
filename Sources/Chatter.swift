@@ -103,9 +103,9 @@ struct Ctx {
   var days = 0, firstToday = false, missed = 0
   var who = "Claude"                    // agent name of the waiting sessions (that name if all are the same, 'agent' if mixed)
   var hour = Calendar.current.component(.hour, from: Date()), minute = Calendar.current.component(.minute, from: Date())
-  var weekday = Calendar.current.component(.weekday, from: Date())   // 1 Sunday … 7 Saturday
-  var month = Calendar.current.component(.month, from: Date()), day = Calendar.current.component(.day, from: Date())
-  var year = Calendar.current.component(.year, from: Date())
+  var weekday = gregorian().component(.weekday, from: Date())   // 1 Sunday … 7 Saturday
+  var month = gregorian().component(.month, from: Date()), day = gregorian().component(.day, from: Date())
+  var year = gregorian().component(.year, from: Date())
   var seasonal = SEASONAL               // seasonal lines (December, New Year) unless turned off in the menu
 }
 /// Mutterings that show each character's personality (mixed in when idle)
