@@ -235,6 +235,10 @@ Thank you to everyone who has helped:
 <table><tr><td align="center"><a href="https://github.com/doldoldol21"><img src="https://github.com/doldoldol21.png?size=96" width="48" height="48" alt="doldoldol21"><br><sub>doldoldol21</sub></a></td><td align="center"><a href="https://github.com/GaneshUbale"><img src="https://github.com/GaneshUbale.png?size=96" width="48" height="48" alt="GaneshUbale"><br><sub>GaneshUbale</sub></a></td></tr></table>
 <!-- contributors:end -->
 
+## Sponsor
+
+If Dot Buddy saves you some tab-switching, you can [sponsor it on GitHub](https://github.com/sponsors/doldoldol21) (right-click the pet → **Sponsor Dot Buddy…**). Monthly sponsors get characters made only for sponsors.
+
 ## License and acknowledgements
 
 MIT, see [LICENSE](LICENSE). Bundled fonts are under the SIL Open Font License 1.1; details in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

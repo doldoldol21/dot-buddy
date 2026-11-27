@@ -231,6 +231,10 @@ Codex CLI, Gemini CLI, Cursor, opencode, Aider 설정은 [docs/agents.md](docs/a
 <table><tr><td align="center"><a href="https://github.com/doldoldol21"><img src="https://github.com/doldoldol21.png?size=96" width="48" height="48" alt="doldoldol21"><br><sub>doldoldol21</sub></a></td><td align="center"><a href="https://github.com/GaneshUbale"><img src="https://github.com/GaneshUbale.png?size=96" width="48" height="48" alt="GaneshUbale"><br><sub>GaneshUbale</sub></a></td></tr></table>
 <!-- contributors:end -->
 
+## 후원
+
+도트 친구가 쓸 만했다면 [GitHub 에서 후원](https://github.com/sponsors/doldoldol21)해 주세요(펫을 오른쪽 클릭 → **도트 친구 후원하기…**). 월 후원자분께는 후원자 전용 캐릭터를 드려요.
+
 ## 라이선스와 감사
 
 MIT 라이선스예요([LICENSE](LICENSE)). 함께 들어가는 글꼴은 SIL Open Font License 1.1 이고, 자세한 내용은 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 있어요.

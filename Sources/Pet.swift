@@ -2181,6 +2181,7 @@ final class Pet: NSObject, NSMenuDelegate {
     let au = NSMenuItem(title: BUILD_KIND == "release" ? T("자동으로 업데이트", "Update Automatically") : T("새 업데이트 알려 주기", "Tell Me About New Versions"), action: #selector(toggleAutoUpdate), keyEquivalent: "")
     au.target = self; au.state = UD.bool(forKey: "autoUpdate") ? .on : .off; menu.addItem(au)
     let cli = NSMenuItem(title: T("명령줄 도구 설치 (다른 에이전트 연결용)", "Install Command-Line Tools (for other agents)"), action: #selector(installCLINow), keyEquivalent: ""); cli.target = self; menu.addItem(cli)
+    let spon = NSMenuItem(title: T("도트 친구 후원하기…", "Sponsor Dot Buddy…"), action: #selector(openSponsor), keyEquivalent: ""); spon.target = self; menu.addItem(spon)
     menu.addItem(.separator())
     let login = NSMenuItem(title: T("로그인할 때 켜기", "Launch at Login"), action: #selector(toggleLogin), keyEquivalent: ""); login.target = self
     login.state = SMAppService.mainApp.status == .enabled ? .on : .off; menu.addItem(login)
@@ -2314,6 +2315,7 @@ final class Pet: NSObject, NSMenuDelegate {
     }
   }
   @objc func checkUpdatesNow() { checkForUpdates(manual: true) }
+  @objc func openSponsor() { NSWorkspace.shared.open(URL(string: "https://github.com/sponsors/doldoldol21")!) }   // GitHub Sponsors page; monthly sponsors get the supporter characters
   @objc func installUpdateNow() {
     guard let u = availableUpdate, !updating else { return }
     updating = true
