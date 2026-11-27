@@ -123,7 +123,7 @@ final class Pet: NSObject, NSMenuDelegate {
   var away = false, lastIdleCheck = 0.0, grabT = 0.0, carriedSaid = false, awayDone = 0
   var climbFrom: CGFloat?, climbRestAt = CGFloat.infinity, climbRestUntil = 0.0, nextGoal: String?, nextGoalDive = true
   var nextFollow = 0.0, lastFidgetQ = false, lastHourSaid = -1
-  var propHour = -1, propHourAt = -99.0, santaOn = false, snowOn = false, partyOn = false
+  var propHourAt = -99.0, santaOn = false, snowOn = false, partyOn = false
   var clicks: [Double] = [], poutNext = false, caught = false, touchUntil = 0.0, gest: Chat?, gestT0 = 0.0, errs: [Double] = [], fx = 0, fxT0 = -99.0
   var days: Int {                                                          // Day number since the day we first met (first day = 1)
     let d0 = UD.double(forKey: "firstDay")
@@ -1614,15 +1614,14 @@ final class Pet: NSObject, NSMenuDelegate {
     }
     if t - fxT0 < 2.5 { p.fx = fx; p.fxK = (t - fxT0) / 2.5 }                     // Character effects (error rain, completion flowers, etc.)
     if t - propHourAt > 30 {                                                        // Re-read the time only every 30 seconds
-      propHourAt = t; let now = Calendar.current.dateComponents([.year, .hour, .minute, .month, .day], from: Date())
+      propHourAt = t; let now = Calendar.current.dateComponents([.year, .minute, .month, .day], from: Date())
       partyOn = SEASONAL && partySeason(year: now.year ?? 0, month: now.month ?? 0, day: now.day ?? 0)
-      propHour = now.hour ?? 0; santaOn = SEASONAL && christmasSeason(month: now.month ?? 0, day: now.day ?? 0)
+      santaOn = SEASONAL && christmasSeason(month: now.month ?? 0, day: now.day ?? 0)
       snowOn = SEASONAL && snowTime(month: now.month ?? 0, minute: now.minute ?? 1)
     }
     p.santa = santaOn                                                               // December 1-26: a Santa hat
     p.party = partyOn                                                               // Launch party: a party hat
     if snowOn, floor != nil { p.snow = (t / 4.5).truncatingRemainder(dividingBy: 1) }   // December: now and then a little snow (on the ground only)
-    if propHour >= 7 && propHour < 10, floor != nil { switch act { case .stand, .work, .hum, .cheer: p.mug = Int(t / 0.5) % 2; default: break } }   // Coffee beside it in the morning
     if t < touchUntil && t >= pettedUntil { p.eyes = .closed; p.blush = true; p.look = NSEvent.mouseLocation.x > pos.x ? 1 : -1 }   // Leans in when touched
     if spinning, case .fall = act { p.rot = Int(t / 0.07) % 4 * (vel.dx >= 0 ? 3 : 1); p.eyes = .dizzy }   // Spins when thrown hard
     if case .work = act, sweaty { p.sweat = (t / 1.4).truncatingRemainder(dividingBy: 1) }   // Sweat when there is a lot of work or it takes long

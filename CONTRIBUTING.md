@@ -21,7 +21,7 @@ Out of scope:
 - Network features beyond the update check: accounts, sync, analytics, telemetry, remote services
 - Tools unrelated to watching agents: to-do lists, timers, reminders, notes, clipboard, music
 - Reading more of your data than showing session status needs
-- Accessories worn every day or by the time of day, like a nightcap at night (see [Accessories are for special days](#accessories-are-for-special-days))
+- Accessories worn every day or by the time of day, like a nightcap at night or a mug every morning (see [Accessories are for special days](#accessories-are-for-special-days))
 
 Not sure whether an idea fits? Open an issue and ask before writing code.
 

@@ -3,10 +3,10 @@ import AppKit
 import CoreText
 import ServiceManagement
 
-// ---------- Time-of-day props ----------
-/// Accessories for special days only, like an easter egg: a Santa hat in December (a red cone drooping backward with a white
-/// pom-pom), a party hat for the launch; and a morning mug (beside the front paw, steam rising). Characters with a flame or
-/// leaf on top of the head do not wear a hat
+// ---------- Accessories for special days ----------
+/// Accessories for special days only, like an easter egg (CONTRIBUTING.md): a Santa hat in December (a red cone drooping
+/// backward with a white pom-pom) and a party hat for the launch. Characters with a flame or leaf on top of the head do not
+/// wear a hat
 func drawProps(_ cv: inout Canvas, _ ch: Chara, _ p: Pose, _ cx0: Int) {
   let id = ch.id.replacingOccurrences(of: "pack:", with: ""), d = p.look < 0 ? -1 : 1, cx = cx0 + p.shake
   let capOK = !["candle", "sprout"].contains(id) && ch.kind != .candle && ch.kind != .sprout
@@ -38,15 +38,6 @@ func drawProps(_ cv: inout Canvas, _ ch: Chara, _ p: Pose, _ cx0: Int) {
     }
     for (x, y) in [(0, 8), (1, 8), (0, 9), (1, 9)] { cv.set(cx + d + (d < 0 ? x - 1 : x), hy - y, pom) }
     cv.top = min(cv.top, hy - 9)
-  }
-  if p.mug >= 0 {
-    let mx = cx + 9 * d - (d < 0 ? 4 : 0), y0 = GY - 4
-    let m = rgba("#e9e4da"), o = rgba("#6a5a4c"), cof = rgba("#6b4226"), steam = rgba("#ffffff", 0.75)
-    for x in 0..<4 { cv.set(mx + x, y0, o); cv.set(mx + x, y0 + 3, o) }
-    for x in 1..<3 { cv.set(mx + x, y0, cof) }
-    for y in 1..<3 { cv.set(mx, y0 + y, o); cv.set(mx + 3, y0 + y, o); cv.set(mx + 1, y0 + y, m); cv.set(mx + 2, y0 + y, m) }
-    let hx = d > 0 ? mx + 4 : mx - 1; cv.set(hx, y0 + 1, o); cv.set(hx, y0 + 2, o)            // The handle is on the side away from the pet
-    cv.set(mx + 1 + p.mug, y0 - 2, steam); cv.set(mx + 2 - p.mug, y0 - 3, steam)
   }
 }
 
@@ -139,7 +130,6 @@ struct Pose: Hashable {
   var angry = false                                  // Sulking mark (red anger vein)
   var motion = "", frame = 0                         // Pack character: the motion sprite to use and its frame index
   var sink = 0                                       // Rows sunk below the floor (nothing is drawn below the floor)
-  var mug = -1                                       // Morning mug, steam beat 0 or 1
   var santa = false                                  // Seasonal: Santa hat (December, see christmasSeason)
   var party = false                                  // Launch party hat (see partySeason)
   var snow = -1.0                                    // Seasonal: snowflakes drifting down, 0 to 1 cycle (December, see snowTime)
