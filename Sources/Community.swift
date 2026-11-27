@@ -19,6 +19,19 @@ let COMMUNITY_MAX_FILE = 256 << 10, COMMUNITY_MAX_PACK = 2 << 20, COMMUNITY_MAX_
 /// Marker written into a pack installed from the community list (lets the window say Installed / Update, and lets an update replace it)
 let COMMUNITY_MARKER = ".community.json"
 
+/// The official mark: a blue pixel badge with a white check (same dots as site/official.svg in dot-buddy/characters), 15pt so each dot is 3 pixels on Retina
+func officialMark() -> NSImage {
+  let g = ["..XXXXXX..", ".XXXXXXXX.", "XXXXXXXXWX", "XXXXXXXWWX", "XWXXXXWWXX", "XWWXXWWXXX", "XXWWWWXXXX", "XXXWWXXXXX", ".XXXXXXXX.", "..XXXXXX.."]
+  return NSImage(size: NSSize(width: 15, height: 15), flipped: true) { r in
+    let d = r.width / 10
+    for (y, row) in g.enumerated() { for (x, c) in row.enumerated() where c != "." {
+      (c == "X" ? NSColor(srgbRed: 0x2f / 255, green: 0x80 / 255, blue: 0xed / 255, alpha: 1) : NSColor.white).setFill()
+      NSRect(x: CGFloat(x) * d, y: CGFloat(y) * d, width: d, height: d).fill()
+    } }
+    return true
+  }
+}
+
 struct CommunityFile { let name: String, sha256: String, size: Int }
 struct CommunityPack {
   let id: String, name: String, names: [String: String], author: String, license: String, description: String
@@ -27,6 +40,7 @@ struct CommunityPack {
   var added = ""                                                                  // YYYY-MM-DD the pack first appeared in the list
   var likes = 0, discussion = ""                                                  // People who liked it (❤️/👍 on its GitHub discussion, counted daily by CI) and that discussion
   var descriptions: [String: String] = [:]                                        // The description in other languages ("ko": …)
+  var official = false                                                            // Drawn by the Dot Buddy team (the gallery marks it; others can't take its name)
   /// Added in the last two weeks
   var isNew: Bool {
     let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(identifier: "UTC")
@@ -99,7 +113,8 @@ func communityIndex() -> Result<[CommunityPack], CommunityError> {
                                basedOn: String(str("based_on").prefix(60)), added: str("added").count == 10 ? str("added") : "",
                                likes: max(0, min(p["likes"] as? Int ?? 0, 999_999)),
                                discussion: str("discussion").hasPrefix("https://github.com/\(COMMUNITY_REPO)/discussions/") ? str("discussion") : "",
-                               descriptions: (p["descriptions"] as? [String: String] ?? [:]).mapValues { String($0.trimmingCharacters(in: .whitespacesAndNewlines).prefix(140)) }.filter { !$0.value.isEmpty }))
+                               descriptions: (p["descriptions"] as? [String: String] ?? [:]).mapValues { String($0.trimmingCharacters(in: .whitespacesAndNewlines).prefix(140)) }.filter { !$0.value.isEmpty },
+                               official: p["official"] as? Bool == true))
     }
     return .success(out.enumerated().sorted { ($0.element.added, -$0.offset) > ($1.element.added, -$1.offset) }.map(\.element))   // newest first, like the gallery
   }
@@ -361,6 +376,10 @@ final class CommunityWindow: NSObject, NSWindowDelegate {
     }
     let title = NSTextField(labelWithString: p.shownName); title.font = .boldSystemFont(ofSize: 13)
     var nameRow: [NSView] = [title]
+    if p.official {                                                                    // the same pixel check as on the gallery
+      let mark = NSImageView(image: officialMark()); mark.toolTip = T("공식: 도트 친구 팀이 그린 캐릭터", "Official: drawn by the Dot Buddy team")
+      mark.setAccessibilityLabel(T("공식", "Official")); nameRow.append(mark)
+    }
     if p.isNew {
       let tag = NSTextField(labelWithString: T("새로", "New")); tag.font = .systemFont(ofSize: 10, weight: .semibold); tag.textColor = .controlAccentColor; nameRow.append(tag)
     }
