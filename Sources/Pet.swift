@@ -479,6 +479,10 @@ final class Pet: NSObject, NSMenuDelegate {
         if !onTop { stackedOn = nil; window.level = .floating; window.orderFrontRegardless(); restackBubbles() }   // As if it had been held
         let sp = hypot(vel.dx, vel.dy); thrown = sp > 400; handFall = true; spinning = sp > 1200; act = .fall; flingTrace = t + 4; lastTick = t; schedule(1.0 / 60)
       }
+    case "menu" where prof:                                                          // For testing: open the pet's menu, close it after "seconds" (default 3)
+      let secs = min(30, max(0.5, Double(text) ?? 3))
+      DispatchQueue.main.asyncAfter(deadline: .now() + secs) { [weak self] in self?.menuShown?.cancelTracking() }
+      DispatchQueue.main.async { [weak self] in self?.showMenu() }; return
     case "goto" where prof:                                                          // For testing (DOTBUDDY_PROF): drop it from above "x,y"
       let v = text.split(separator: ",").compactMap { Double($0) }; if v.count == 2 { pos = CGPoint(x: v[0], y: v[1]); floorID = nil; vel = .init(dx: 0, dy: 0); act = .fall }
     default: return
@@ -2240,7 +2244,9 @@ final class Pet: NSObject, NSMenuDelegate {
     NSApp.activate(ignoringOtherApps: true)
     let hold = floor != nil && { if case .sleep = act { return false } else if case .work = act { return false } else { return true } }()
     if hold { act = .stand; actUntil = now + 3600 }                                // Stays put under its menu (it used to walk off with the menu left behind)
-    menuOpen = true; defer { menuOpen = false; lastTick = now }
+    menuOpen = true; menuShown = menu
+    if prof { FileHandle.standardError.write("  menu open x=\(Int(pos.x)) y=\(Int(pos.y))\n".data(using: .utf8)!) }
+    defer { menuOpen = false; menuShown = nil; lastTick = now; if prof { FileHandle.standardError.write("  menu closed x=\(Int(pos.x)) y=\(Int(pos.y))\n".data(using: .utf8)!) } }
     menu.popUp(positioning: nil, at: NSPoint(x: view.bounds.midX, y: CGFloat(CH - lastCanvas.top) * ds), in: view)   // returns when the menu closes
     if hold, case .stand = act { actUntil = now + 0.6 }
   }
@@ -2293,7 +2299,7 @@ final class Pet: NSObject, NSMenuDelegate {
     if prof { FileHandle.standardError.write("  done-today \(c + n)\n".data(using: .utf8)!) }
   }
   // ---------- Hide for a while ----------
-  var snoozeUntil = 0.0, snoozed = false, menuOpen = false
+  var snoozeUntil = 0.0, snoozed = false, menuOpen = false, menuShown: NSMenu?
   @objc func snooze(_ it: NSMenuItem) {
     guard let mins = it.representedObject as? Double else { return }
     snoozeUntil = now + mins * 60; snoozed = true; hideNotice(); chatUntil = 0

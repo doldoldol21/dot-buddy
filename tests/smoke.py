@@ -9,7 +9,7 @@ folders (no real Claude Code sessions), reports a fake session through the CLI a
 today's count goes up, a question and a signal get through, a question followed straight by done still counts, and the app is still running at the end. Made for the macOS
 runner in CI. On a managed work Mac, leave it to CI.
 """
-import os, subprocess, sys, tempfile, time
+import os, re, subprocess, sys, tempfile, time
 
 APP = sys.argv[1] if len(sys.argv) > 1 else sys.exit(__doc__)
 SHOT = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -72,6 +72,15 @@ try:
         wait_for("done straight after a question counts", "  done-today 2", 10)
         subprocess.run([BIN, "--signal", "done", "smoke signal"], env=env, timeout=10)
         wait_for("a signal counts as done", "  done-today 3", 10)
+        subprocess.run([BIN, "--signal", "menu", "3"], env=env, timeout=10)      # the pet's menu (test-only signal), closed by itself after 3 seconds
+        if wait_for("menu opens", "  menu open", 10) and wait_for("menu closes", "  menu closed", 10):
+            seg = log().split("  menu open", 1)[1].split("  menu closed", 1)[0]
+            spots = set(re.findall(r"(?:^ |pos t=\d+ )x=(-?\d+) y=(-?\d+)", seg, re.M))   # where it was as the menu opened, then every second
+            if len(spots) == 1:
+                print("ok   stands still while the menu is open")
+            else:
+                failed.append("stands still while the menu is open")
+                print(f"FAIL stands still while the menu is open (moved: {sorted(spots)})")
         if SHOT:
             time.sleep(1)
             subprocess.run(["screencapture", "-x", SHOT], timeout=20)         # for a look in the run's artifacts; not checked

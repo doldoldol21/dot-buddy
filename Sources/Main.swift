@@ -172,7 +172,7 @@ struct Main {
       //   the text of event is a gesture name (EVENT_NAMES): read·edit·test·commit·shell·web·skill·error·bg-start·bg-done·agent-start[:name]·agent-done
       var text = a.count >= 4 ? a[3] : "", from = ""
       if let i = a.firstIndex(of: "--from"), i + 1 < a.count { from = a[i + 1]; if a.count >= 4 && a[3] == "--from" { text = "" } }
-      guard ["say", "done", "ask", "work", "cheer", "poke", "event", "goto", "drop", "fling"].contains(a[2]) else { print(T("알 수 없는 신호: \(a[2]) (say·done·ask·work·cheer·poke·event)", "Unknown signal: \(a[2]) (say·done·ask·work·cheer·poke·event)")); exit(2) }
+      guard ["say", "done", "ask", "work", "cheer", "poke", "event", "goto", "drop", "fling", "menu"].contains(a[2]) else { print(T("알 수 없는 신호: \(a[2]) (say·done·ask·work·cheer·poke·event)", "Unknown signal: \(a[2]) (say·done·ask·work·cheer·poke·event)")); exit(2) }
       if a[2] == "event", chatEvent(text) == nil { print(T("알 수 없는 몸짓: \(text) (\(EVENT_NAMES.joined(separator: "·")))", "Unknown gesture: \(text) (\(EVENT_NAMES.joined(separator: "·")))")); exit(2) }
       let j = ["kind": a[2], "text": text, "from": from]
       let s = String(decoding: try! JSONSerialization.data(withJSONObject: j), as: UTF8.self)
