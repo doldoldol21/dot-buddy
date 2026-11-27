@@ -62,7 +62,7 @@ Clicking the pet marks everything as seen. A finished session keeps its "done" s
 - **Community characters.** Install characters other people drew from the menu (Character → **More Characters…**), or browse the [gallery](https://dot-buddy.github.io/characters/), and share yours with a pull request to [dot-buddy/characters](https://github.com/dot-buddy/characters).
 - **Codex pets.** Pets made for the Codex app (`pet.json` + 8×9 spritesheet) load as-is from `~/.codex/pets/`. A downloaded Codex pet zip works too: drop it on the pet without unzipping.
 - **Share as GIF.** Character → **Save This Character as GIF** puts a short looping GIF of the one on screen in Downloads, ready to post.
-- **Seasons.** Wears a party hat for the launch (until February 25, 2027), a Santa hat through December, now and then with a little snow, and has something to say on Christmas and New Year's Day. Turn it off with **Seasonal Touches** in the menu.
+- **Accessories.** On special days it dresses up, like an easter egg: a party hat for the launch (until February 25, 2027), a Santa hat and a little snow in December, and something to say on Christmas and New Year's Day. **Turn Off Accessories** in the menu stops it.
 - **Sound, if you want it.** Off by default. Turn on **Play a Sound When Done** in the menu for a short system sound when a session finishes or asks something.
 - **Today's count.** The top of the menu shows how many tasks finished today.
 - **Bilingual.** Follows the system language; switch between English and Korean from the menu.
@@ -179,7 +179,7 @@ The full guide, with every motion name and the `chara.json` format, is in [CHARA
 
 ## Configuration
 
-**Settings menu** (right-click the pet): Finished Today (a count, from the first one of the day), Sessions (what each one is doing; choose one to jump to it), Hide for a While, Character, Size, Wandering (how often it visits windows), Chattiness (Chatty, Normal, Quiet, Off), Font, Bubble Text size (separate from Size), Language, Seasonal Touches, Play a Sound When Done (off by default), Check for Updates…, Update Automatically, Install Command-Line Tools, Launch at Login, Quit. When three or more sessions finish at once, they share one bubble ("4 done: api, web, docs…").
+**Settings menu** (right-click the pet): Finished Today (a count, from the first one of the day), Sessions (what each one is doing; choose one to jump to it), Hide for a While, Character, Size, Wandering (how often it visits windows), Chattiness (Chatty, Normal, Quiet, Off), Font, Bubble Text size (separate from Size), Language, Turn Off Accessories, Play a Sound When Done (off by default), Check for Updates…, Update Automatically, Install Command-Line Tools, Launch at Login, Quit. When three or more sessions finish at once, they share one bubble ("4 done: api, web, docs…").
 
 **`tools.json`** (`~/Library/Application Support/DotBuddy/tools.json`) customizes each agent. Changes apply on the next read, no restart needed. Keys are tool names as passed to `--report` (`claude` for Claude Code), and `*` applies to every tool.
 

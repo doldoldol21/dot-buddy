@@ -1619,10 +1619,9 @@ final class Pet: NSObject, NSMenuDelegate {
       propHour = now.hour ?? 0; santaOn = SEASONAL && christmasSeason(month: now.month ?? 0, day: now.day ?? 0)
       snowOn = SEASONAL && snowTime(month: now.month ?? 0, minute: now.minute ?? 1)
     }
-    p.santa = santaOn                                                               // December: a Santa hat all day (it replaces the nightcap)
-    p.party = partyOn                                                               // Launch party: a party hat (the nightcap wins at night and while sleeping)
+    p.santa = santaOn                                                               // December 1-26: a Santa hat
+    p.party = partyOn                                                               // Launch party: a party hat
     if snowOn, floor != nil { p.snow = (t / 4.5).truncatingRemainder(dividingBy: 1) }   // December: now and then a little snow (on the ground only)
-    switch act { case .sleep, .yawn: p.nightcap = true; default: p.nightcap = (propHour >= 22 || propHour < 6) && floor != nil }   // Sleep cap at night (not drawn in mid-air, as if it came off)
     if propHour >= 7 && propHour < 10, floor != nil { switch act { case .stand, .work, .hum, .cheer: p.mug = Int(t / 0.5) % 2; default: break } }   // Coffee beside it in the morning
     if t < touchUntil && t >= pettedUntil { p.eyes = .closed; p.blush = true; p.look = NSEvent.mouseLocation.x > pos.x ? 1 : -1 }   // Leans in when touched
     if spinning, case .fall = act { p.rot = Int(t / 0.07) % 4 * (vel.dx >= 0 ? 3 : 1); p.eyes = .dizzy }   // Spins when thrown hard
@@ -2148,8 +2147,8 @@ final class Pet: NSObject, NSMenuDelegate {
     sub(T("말풍선 글자: \(cur(texts, noticeScale))", "Bubble Text: \(cur(texts, noticeScale))"), texts.map { ($0.0, noticeScale == $0.1, #selector(setNoticeScale(_:)), $0.1) })
     let langs: [(String, String)] = [(T("시스템 따라", "System"), ""), ("한국어", "ko"), ("English", "en")], langNow = UD.string(forKey: "lang") ?? ""
     sub(T("언어", "Language") + ": \(cur(langs, langNow))", langs.map { ($0.0, langNow == $0.1, #selector(setLang(_:)), $0.1) })
-    let season = NSMenuItem(title: T("계절 꾸미기 (파티 모자, 12월 산타 모자와 눈 등)", "Seasonal Touches (a party hat, a Santa hat and snow in December…)"), action: #selector(toggleSeasonal), keyEquivalent: "")
-    season.target = self; season.state = SEASONAL ? .on : .off; menu.addItem(season)
+    let season = NSMenuItem(title: SEASONAL ? T("악세사리 끄기", "Turn Off Accessories") : T("악세사리 켜기", "Turn On Accessories"), action: #selector(toggleSeasonal), keyEquivalent: "")
+    season.target = self; menu.addItem(season)
     let snd = NSMenuItem(title: T("끝나면 소리 내기", "Play a Sound When Done"), action: #selector(toggleSound), keyEquivalent: "")
     snd.target = self; snd.state = soundOn ? .on : .off; menu.addItem(snd)
     menu.addItem(.separator())

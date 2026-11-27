@@ -4,9 +4,9 @@ import CoreText
 import ServiceManagement
 
 // ---------- Time-of-day props ----------
-/// Nightcap (on the head, a striped cone drooping backward with a white pom-pom), a Santa hat in December (the same shape in red,
-/// worn all day instead of the nightcap) and a morning mug (beside the front paw, steam rising). Characters with a flame or
-/// leaf on top of the head do not wear a cap
+/// Accessories for special days only, like an easter egg: a Santa hat in December (a red cone drooping backward with a white
+/// pom-pom), a party hat for the launch; and a morning mug (beside the front paw, steam rising). Characters with a flame or
+/// leaf on top of the head do not wear a hat
 func drawProps(_ cv: inout Canvas, _ ch: Chara, _ p: Pose, _ cx0: Int) {
   let id = ch.id.replacingOccurrences(of: "pack:", with: ""), d = p.look < 0 ? -1 : 1, cx = cx0 + p.shake
   let capOK = !["candle", "sprout"].contains(id) && ch.kind != .candle && ch.kind != .sprout
@@ -15,10 +15,10 @@ func drawProps(_ cv: inout Canvas, _ ch: Chara, _ p: Pose, _ cx0: Int) {
     func solid(_ y: Int) -> Bool { var run = 0; for x in max(0, cx - 8)...min(CW - 1, cx + 8) { if cv.alpha(x, y) >= 0xf0 { run += 1; if run >= 4 { return true } } else { run = 0 } }; return false }
     return ch.sprite != nil ? ((cv.top..<GY).first(where: solid) ?? cv.top) : cv.top
   }
-  if p.nightcap || p.santa, capOK {
+  if p.santa, capOK {
     let hy = headRow(cv) + 1, b = -d                                                         // The cone droops away from the facing direction
     let band = rgba("#f4f1ea"), pom = rgba("#ffffff")
-    let (c1, c2, line) = p.santa ? (rgba("#d8383b"), rgba("#ee5a50"), rgba("#7a1d24")) : (rgba("#5b7fd6"), rgba("#8fb0f0"), rgba("#34407a"))
+    let (c1, c2, line) = (rgba("#d8383b"), rgba("#ee5a50"), rgba("#7a1d24"))
     for x in -5...5 { cv.set(cx + x, hy, band); cv.set(cx + x, hy + 1, band) }                  // White band (two rows)
     let rows: [(Int, ClosedRange<Int>)] = [(1, -4...4), (2, -3...4), (3, -1...5), (4, 1...6), (5, 4...7)]
     for (j, r) in rows { for x in r { cv.set(cx + x * b, hy - j, x == r.lowerBound || j == 5 ? line : ((x + j) % 3 == 0 ? c2 : c1)) } }   // The striped cone droops backward
@@ -139,9 +139,9 @@ struct Pose: Hashable {
   var angry = false                                  // Sulking mark (red anger vein)
   var motion = "", frame = 0                         // Pack character: the motion sprite to use and its frame index
   var sink = 0                                       // Rows sunk below the floor (nothing is drawn below the floor)
-  var nightcap = false, mug = -1                     // Time-of-day props: nightcap (night / sleeping) and mug (morning, steam beat 0 or 1)
+  var mug = -1                                       // Morning mug, steam beat 0 or 1
   var santa = false                                  // Seasonal: Santa hat (December, see christmasSeason)
-  var party = false                                  // Launch party hat (see partySeason); the nightcap wins at night
+  var party = false                                  // Launch party hat (see partySeason)
   var snow = -1.0                                    // Seasonal: snowflakes drifting down, 0 to 1 cycle (December, see snowTime)
   var fx = 0, fxK = 0.0                              // Character effect: 1 error, 2 done; fxK is progress 0 to 1
   var icon = 0, iconBob = 0                          // Icon above the head: 1 light bulb (flash of insight), 2 question mark (head tilt)

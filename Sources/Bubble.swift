@@ -172,7 +172,7 @@ enum Layer: String, CaseIterable { case desktop, top
   var label: String { self == .desktop ? T("바탕화면", "Desktop") : T("항상 위", "Always on top") }
 }
 let UD = UserDefaults.standard
-/// Seasonal touches (the Santa hat and Christmas lines in December, New Year lines on January 1). On unless turned off in the menu
+/// Accessories for special days (the party hat, the Santa hat, snow and lines for those days). On unless turned off in the menu
 var SEASONAL: Bool { UD.object(forKey: "seasonal") == nil || UD.bool(forKey: "seasonal") }
 /// December 1-26: the pet wears a Santa hat
 func christmasSeason(month: Int, day: Int) -> Bool { month == 12 && day <= 26 }

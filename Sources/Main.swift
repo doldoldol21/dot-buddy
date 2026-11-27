@@ -286,11 +286,11 @@ struct Main {
     }
     if a.count >= 3 && a[1] == "--fx-sheet" {
       // character effect preview: --fx-sheet <png> — packs (rows) × [error 0.2·0.5 · done 0.3·0.6] (frames), 6x
-      let charas = loadCustomCharas(), ks: [(Int, Double)] = [(1, 0.2), (1, 0.5), (2, 0.3), (2, 0.6), (-1, 0), (-2, 0), (-3, 0), (-4, 0), (-5, 0.3), (-6, 0), (-7, 0)], S = 6   // -1 sleeping cap · -2 mug · -3 Santa hat · -4 Santa hat facing left · -5 snow · -6 party hat · -7 party hat facing left
+      let charas = loadCustomCharas(), ks: [(Int, Double)] = [(1, 0.2), (1, 0.5), (2, 0.3), (2, 0.6), (-1, 0), (-2, 0), (-3, 0), (-4, 0), (-5, 0.3), (-6, 0), (-7, 0)], S = 6   // -1 eyes closed · -2 mug · -3 Santa hat · -4 Santa hat facing left · -5 snow · -6 party hat · -7 party hat facing left
       guard !charas.isEmpty, let ctx = CGContext(data: nil, width: CW * S * ks.count, height: CH * S * charas.count, bitsPerComponent: 8, bytesPerRow: 0, space: RGB_SPACE, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { exit(1) }
       ctx.setFillColor(CGColor(red: 0.62, green: 0.74, blue: 0.55, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: CW * S * ks.count, height: CH * S * charas.count)); ctx.interpolationQuality = .none
       for (r, ch) in charas.enumerated() { for (c, (f, k)) in ks.enumerated() {
-        var p = Pose(); if f > 0 { p.fx = f; p.fxK = k } else if f == -1 { p.nightcap = true; p.eyes = .closed } else if f == -5 { p.santa = true; p.snow = k } else if f <= -6 { p.party = true; p.look = f == -7 ? -1 : 0 } else if f <= -3 { p.santa = true; p.look = f == -4 ? -1 : 0 } else { p.mug = 0 }
+        var p = Pose(); if f > 0 { p.fx = f; p.fxK = k } else if f == -1 { p.eyes = .closed } else if f == -5 { p.santa = true; p.snow = k } else if f <= -6 { p.party = true; p.look = f == -7 ? -1 : 0 } else if f <= -3 { p.santa = true; p.look = f == -4 ? -1 : 0 } else { p.mug = 0 }
         if let img = draw(ch, p).image() { ctx.draw(img, in: CGRect(x: c * CW * S, y: (charas.count - 1 - r) * CH * S, width: CW * S, height: CH * S)) }
       } }
       if let img = ctx.makeImage() { writePNG(img, a[2]) }
