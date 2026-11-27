@@ -317,6 +317,18 @@ struct Main {
       for (n, d) in MOTIONS { print("| `\(n)` | \(d.components(separatedBy: " → ")[0]) | \(fb(n).isEmpty ? (n == "idle" ? "—" : "idle") : fb(n) + " → idle") |") }
       return
     }
+    if a.count >= 2 && a[1] == "--hat-check" {
+      // test hook: per pack, where the party hat lands — the box of dots that change when it is put on, and where the idle frame sits on the canvas
+      for ch in loadCustomCharas() { guard let sp = ch.sprite else { continue }
+        var p = Pose(); p.look = 1; let off = draw(ch, p).px; p.party = true; let on = draw(ch, p).px
+        let diff = (0..<on.count).filter { on[$0] != off[$0] }.map { ($0 % CW, $0 / CW) }
+        let box: Any = diff.isEmpty ? NSNull() : [diff.map(\.0).min()!, diff.map(\.1).min()!, diff.map(\.0).max()!, diff.map(\.1).max()!]
+        let hat: Any = { switch sp.hat { case .auto: return "auto"; case .none: return false; case let .at(x, y): return [x, y] } }()
+        let j: [String: Any] = ["id": ch.id, "hat": hat, "box": box, "left": 16 - sp.w / 2, "top": GY - sp.h + 1]
+        print(String(decoding: try! JSONSerialization.data(withJSONObject: j, options: [.sortedKeys]), as: UTF8.self))
+      }
+      return
+    }
     if a.count >= 3 && a[1] == "--tail-test" {
       // test hook: follow a transcript the way a working session is followed and print the chatter it causes; the caller appends lines after "ready"
       var got: [String] = []

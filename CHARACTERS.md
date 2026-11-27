@@ -90,6 +90,7 @@ Dot Buddy is not affiliated with OpenAI. The format is read for compatibility on
 | `height` | Body height in dots, used to match sizes with other characters (leave out room for raised arms or ears) | The frame height |
 | `fps` | Frames per second per motion. One-shot motions (jumps, reactions, yawns) advance frames with their progress instead | 6 |
 | `eyes` | Eye rectangles `[x, y, width, height]` used for automatic blinking, happy eyes and dizzy eyes (`idle` and single images only) | No blinking |
+| `hat` | Where the hat goes on special days (a party hat, a Santa hat): `[x, y]` is the dot in the first `idle` frame where the brim's middle sits, and it follows the eyes as they move in other motions. `false` means no hat, for a flame, a leaf or steam on top | Found on the top of the head |
 
 A single image can use the same keys in `<name>.json`, except `frame` and `fps`.
 

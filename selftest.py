@@ -144,6 +144,19 @@ with tempfile.TemporaryDirectory() as td:
         f.write(line[:20]); f.flush(); time.sleep(0.6); f.write(line[20:]); f.flush()
     out = pr.communicate(timeout=10)[0].split()
     check("기록 따라 읽기 — 몸짓", out, ["read", 'agentStart("Explore")', "agentDone", 'agentStart("")', "shell", "error", "bgDone"])
+# a pack's hat spot (chara.json "hat"): found on the head by default, none with false, the brim's middle at [x, y] of the idle frame
+with tempfile.TemporaryDirectory() as td:
+    src = os.path.join(HERE, "tests", "fixtures", "community", "ghost")
+    for name, hat in (("h-auto", None), ("h-none", False), ("h-at", [6, 4])):
+        shutil.copytree(src, os.path.join(td, name)); f = os.path.join(td, name, "chara.json")
+        m = json.load(open(f, encoding="utf-8"))
+        if hat is not None: m["hat"] = hat
+        json.dump(m, open(f, "w", encoding="utf-8"))
+    r = subprocess.run([BIN, "--hat-check"], capture_output=True, text=True, timeout=30, env=dict(os.environ, DOTBUDDY_CHARAS=td))
+    hats = {j["id"]: j for j in (json.loads(l) for l in r.stdout.splitlines() if l.strip())} if r.returncode == 0 else {}
+    at = hats.get("pack:h-at", {})
+    check("모자 자리 — 기본·없음·지정", (hats.get("pack:h-auto", {}).get("box") is not None, hats.get("pack:h-none", {}).get("box"),
+          at.get("box") and (at["box"][0], at["box"][3])), (True, None, at and (at["left"] + 6 - 4, at["top"] + 4)))
 # wrapping any CLI (--run): working while it runs (wrapper pid), done when it ends — tied to the tab's shell (the outermost process on the
 # same terminal, so a short-lived sh -c or make in between doesn't drop it), or to nothing without a terminal; exit code passes through
 with tempfile.TemporaryDirectory() as td:

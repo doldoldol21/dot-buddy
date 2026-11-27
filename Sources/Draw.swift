@@ -7,36 +7,37 @@ import ServiceManagement
 /// Accessories for special days only, like an easter egg (CONTRIBUTING.md): a Santa hat in December (a red cone drooping
 /// backward with a white pom-pom) and a party hat for the launch. Characters with a flame or leaf on top of the head do not
 /// wear a hat
-func drawProps(_ cv: inout Canvas, _ ch: Chara, _ p: Pose, _ cx0: Int) {
+/// hatAt: the brim's middle dot on the canvas when the pack says where (chara.json "hat": [x, y]); otherwise it is found on the head
+func drawProps(_ cv: inout Canvas, _ ch: Chara, _ p: Pose, _ cx0: Int, hatAt: (Int, Int)? = nil) {
   let id = ch.id.replacingOccurrences(of: "pack:", with: ""), d = p.look < 0 ? -1 : 1, cx = cx0 + p.shake
-  let capOK = !["candle", "sprout"].contains(id) && ch.kind != .candle && ch.kind != .sprout
+  let capOK = !["candle", "sprout"].contains(id) && ch.kind != .candle && ch.kind != .sprout && ch.sprite?.hat != Hat.none
   // The head: the first row with 4 solid dots in a row near the middle, so steam, a stem or a wisp doesn't hold the cap up in the air
   func headRow(_ cv: Canvas) -> Int {
     func solid(_ y: Int) -> Bool { var run = 0; for x in max(0, cx - 8)...min(CW - 1, cx + 8) { if cv.alpha(x, y) >= 0xf0 { run += 1; if run >= 4 { return true } } else { run = 0 } }; return false }
     return ch.sprite != nil ? ((cv.top..<GY).first(where: solid) ?? cv.top) : cv.top
   }
   if p.santa, capOK {
-    let hy = headRow(cv) + 1, b = -d                                                         // The cone droops away from the facing direction
+    let (hx, hy) = hatAt ?? (cx, headRow(cv) + 1), b = -d                                                         // The cone droops away from the facing direction
     let band = rgba("#f4f1ea"), pom = rgba("#ffffff")
     let (c1, c2, line) = (rgba("#d8383b"), rgba("#ee5a50"), rgba("#7a1d24"))
-    for x in -5...5 { cv.set(cx + x, hy, band); cv.set(cx + x, hy + 1, band) }                  // White band (two rows)
+    for x in -5...5 { cv.set(hx + x, hy, band); cv.set(hx + x, hy + 1, band) }                  // White band (two rows)
     let rows: [(Int, ClosedRange<Int>)] = [(1, -4...4), (2, -3...4), (3, -1...5), (4, 1...6), (5, 4...7)]
-    for (j, r) in rows { for x in r { cv.set(cx + x * b, hy - j, x == r.lowerBound || j == 5 ? line : ((x + j) % 3 == 0 ? c2 : c1)) } }   // The striped cone droops backward
-    for (x, y) in [(8, 4), (9, 4), (8, 3), (9, 3), (8, 5), (9, 5)] { cv.set(cx + x * b, hy - y + 1, pom) }   // White pom-pom
+    for (j, r) in rows { for x in r { cv.set(hx + x * b, hy - j, x == r.lowerBound || j == 5 ? line : ((x + j) % 3 == 0 ? c2 : c1)) } }   // The striped cone droops backward
+    for (x, y) in [(8, 4), (9, 4), (8, 3), (9, 3), (8, 5), (9, 5)] { cv.set(hx + x * b, hy - y + 1, pom) }   // White pom-pom
     cv.top = min(cv.top, hy - 5)
   } else if p.party, capOK {
     // Party hat: an upright striped cone with a pom-pom, the tip leaning a little toward where it looks
-    let hy = headRow(cv) + 1
+    let (hx, hy) = hatAt ?? (cx, headRow(cv) + 1)
     let (line, c1, c2, dot, pom) = (rgba("#2f3a78"), rgba("#4f8fe6"), rgba("#ffd84a"), rgba("#ff6fa8"), rgba("#ffffff"))
     let rows: [ClosedRange<Int>] = [-4...4, -3...3, -3...3, -2...2, -2...2, -1...1, -1...1, 0...0]   // row 0 is the rim, on the top of the head
     for (j, r) in rows.enumerated() {
       let sx = j >= 5 ? d : 0
       for x in r {
         let c = x == r.lowerBound || x == r.upperBound || j == 0 && abs(x) == 4 ? line : (x - j + 30) % 4 == 0 ? c2 : (x + j + 30) % 5 == 0 ? dot : c1
-        cv.set(cx + x + sx, hy - j, c)
+        cv.set(hx + x + sx, hy - j, c)
       }
     }
-    for (x, y) in [(0, 8), (1, 8), (0, 9), (1, 9)] { cv.set(cx + d + (d < 0 ? x - 1 : x), hy - y, pom) }
+    for (x, y) in [(0, 8), (1, 8), (0, 9), (1, 9)] { cv.set(hx + d + (d < 0 ? x - 1 : x), hy - y, pom) }
     cv.top = min(cv.top, hy - 9)
   }
 }
@@ -152,6 +153,7 @@ func draw(_ ch: Chara, _ p: Pose) -> Canvas {
   let cx = 16 + p.shake
   var bottom = GY - (feet ? 1 : 0) - p.lift, top = bottom - h + 1, left = cx - w / 2
   if p.lift >= 2 && p.rot == 0 { let sw = p.lift > 5 ? 6 : 9; cv.rect(16 - sw / 2, GY, sw, 1, rgba("#000000", 0.16)) }   // A shadow under the feet when lifted
+  var hatAt: (Int, Int)? = nil
   if let base = ch.sprite {
     // If a motion sprite (pack) exists, use that frame as is: only flip and lift. Otherwise squash, stretch and lift legs on the base sprite
     let mo = p.motion.isEmpty ? nil : base.motions[p.motion]
@@ -166,6 +168,10 @@ func draw(_ ch: Chara, _ p: Pose) -> Canvas {
     if !procedural {} else if p.squash > 0 { for _ in 0..<min(p.squash, 3) where rows.count > 2 { rows.remove(at: rows.count / 2) } } else if p.squash < 0 { rows.insert(rows[rows.count / 2], at: rows.count / 2) }
     w = sp.w; h = rows.count; bottom = GY - p.lift; top = bottom - h + 1; left = cx - w / 2
     let flip = p.look < 0, legTop = sp.h - 4
+    if case let .at(ax, ay) = base.hat {                                              // the pack's hat spot, moved as far as the eyes moved in this frame (so it bobs with the head)
+      let (dx, dy) = mo.flatMap { fi < $0.eyeAt.count ? $0.eyeAt[fi] : nil } ?? (0, 0), x = ax + dx
+      hatAt = (left + (flip ? sp.w - 1 - x : x), top + ay + dy)
+    }
     var face = sp.px
     for (ex, ey, ew, eh) in sp.eyes {                                    // Eyes: for closed and smiling eyes, cover the cell with the body color and draw one line
       guard p.eyes == .closed || p.eyes == .happy || p.eyes == .dizzy else { continue }
@@ -298,7 +304,7 @@ func draw(_ ch: Chara, _ p: Pose) -> Canvas {
 
   }
   cv.top = ch.sprite != nil ? ((0..<CH).first { y in (0..<CW).contains { cv.px[y * CW + $0] != 0 } } ?? top) : top - (KIND_TOP[ch.kind] ?? 0)
-  drawProps(&cv, ch, p, cx)
+  drawProps(&cv, ch, p, cx, hatAt: hatAt)
   // Laptop (the back of the lid seen from the front) + typing hands
   if p.laptop >= 0 {
     let gr = rgba("#9aa0aa"), gd = rgba("#6a6f78"), lx = cx - 5

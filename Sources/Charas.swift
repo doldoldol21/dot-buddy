@@ -15,7 +15,9 @@ let INK = rgba("#2b2222"), CHEEK = rgba("#f08f9a"), WHITE = rgba("#ffffff")
 // ---------- Characters ----------
 enum Kind { case mandu, acorn, sprout, cloud, candle, pebble, custom }
 /// A loaded dot sprite (assumed to face right). eyes = the eye cells that blink (x, y, w, h)
-struct Sprite { let w: Int, h: Int, px: [UInt32], eyes: [(Int, Int, Int, Int)]; var motions: [String: Motion] = [:]; var bodyH = 0 }   // bodyH: key used when matching sizes (body height without the margin for raised arms)
+struct Sprite { let w: Int, h: Int, px: [UInt32], eyes: [(Int, Int, Int, Int)]; var motions: [String: Motion] = [:]; var bodyH = 0; var hat: Hat = .auto }   // bodyH: key used when matching sizes (body height without the margin for raised arms)
+/// Where a special-day hat goes (chara.json "hat"): found on the head, none (`false`, for a flame, leaf or steam on top), or the dot in idle.png where the hat's brim sits (`[x, y]`)
+enum Hat: Equatable { case auto, none, at(Int, Int) }
 /// One set of motion sprites: a PNG of equal-size frames laid out horizontally (frame = idle.png size). fps comes from "fps" in chara.json
 struct Motion { let w: Int, h: Int, frames: [[UInt32]], fps: Double; var eyeAt: [(Int, Int)?] = [] }   // eyeAt: per frame, where the base eye moved to (dx, dy); nil for frames that redraw the eyes
 /// Motion names a character pack can use. Add a file named <name>.png and that sprite is used in that situation. If missing, it falls back to the name after the arrow (the last fallback is idle)
@@ -203,6 +205,12 @@ func loadCustomCharas() -> [Chara] {
 /// charas/<name>.png (+ <name>.json)        a single sprite. The other motions are made by stretching and flipping it
 /// charas/<name>/idle.png, walk.png, ...     a pack. Only motions named in MOTIONS use their own sprite; the rest use fallbacks or automatic motions
 /// json: {"name": "shown name", "names": {"en": "Shown name"}, "eyes": [[x,y,w,h], ...], "fps": {"default": 6, "walk": 8}}   names holds per-language names (name if absent)
+/// chara.json "hat": false → no hat, [x, y] inside the frame → the brim's middle dot; anything else → found on the head
+func hatSpot(_ v: Any?, w: Int, h: Int) -> Hat {
+  if let b = v as? Bool, !b { return .none }
+  if let a = v as? [Int], a.count == 2, (0..<w).contains(a[0]), (0..<h).contains(a[1]) { return .at(a[0], a[1]) }
+  return .auto
+}
 func loadCharas(in dir: URL) -> [Chara] {
   let fm = FileManager.default
   var out: [Chara] = []
@@ -215,7 +223,7 @@ func loadCharas(in dir: URL) -> [Chara] {
     let body = freq.max { $0.value < $1.value }?.key ?? rgba("#8fd3a8")
     let line = freq.keys.min { lum($0) < lum($1) } ?? INK
     return Chara(id: id, name: (m["names"] as? [String: String])?[LANG.rawValue] ?? m["name"] as? String ?? fallbackName, kind: .custom, body: body, light: body, shade: body, line: line,
-                 accent: rgba("#f08f9a"), sprite: Sprite(w: w, h: h, px: px, eyes: eyes, motions: motions, bodyH: m["height"] as? Int ?? h))
+                 accent: rgba("#f08f9a"), sprite: Sprite(w: w, h: h, px: px, eyes: eyes, motions: motions, bodyH: m["height"] as? Int ?? h, hat: hatSpot(m["hat"], w: w, h: h)))
   }
   let items = ((try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])) ?? []).sorted { $0.path < $1.path }   // hidden: a community pack still downloading (.incoming-…)
   for f in items {
