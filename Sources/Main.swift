@@ -182,7 +182,7 @@ struct Main {
     if a.count >= 3 && a[1] == "--where" {
       // where clicking that pid's session would go (does not move): --where <pid> [tool]
       let pid = Int32(a[2]) ?? 0, p = openPlan(pid: pid, id: "", tool: a.count >= 4 ? a[3] : "claude", name: "")
-      let j: [String: Any] = ["via": p.via, "app": p.app?.bundleIdentifier ?? "", "tty": p.tty ?? "", "open": p.custom ?? []]
+      let j: [String: Any] = ["via": p.via, "app": p.app?.bundleIdentifier ?? "", "tty": p.tty ?? "", "open": p.custom ?? [], "tmux": p.tmux.map { "\($0.window)\($0.pane)" } ?? ""]
       print(String(decoding: try! JSONSerialization.data(withJSONObject: j, options: [.sortedKeys]), as: UTF8.self))
       return
     }

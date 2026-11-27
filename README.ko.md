@@ -53,7 +53,9 @@
   | 터미널(Terminal) | 그 탭까지(AppleScript, 처음 한 번 자동화 권한을 물어요) |
   | iTerm2 | 그 세션까지(AppleScript, 처음 한 번 자동화 권한을 물어요) |
   | [Ghostty](https://ghostty.org) 1.4 이상 | 그 탭·분할 창까지(AppleScript, 처음 한 번 자동화 권한을 물어요) |
-  | 그 밖(WezTerm, kitty, VS Code, 어느 터미널이든 tmux 안 등) | 그 앱을 앞으로 가져와요 |
+  | [WezTerm](https://wezterm.org) | 그 탭·분할 창까지(wezterm CLI) |
+  | 위 터미널 안의 tmux | tmux 창·pane 까지 고르고, 그 터미널 탭으로 가요. 그 tmux 세션을 보는 터미널이 없으면 마지막에 쓴 터미널을 그 세션으로 바꿔요 |
+  | 그 밖(kitty, VS Code 등) | 그 앱을 앞으로 가져와요 |
 
   에이전트마다 내 명령으로 바꿀 수도 있어요([설정](#설정) 참고).
 - **캐릭터.** 오리지널 도트 캐릭터 여섯(만두, 도토리, 새싹 화분, 구름, 촛불, 이끼돌)이 있고, 캐릭터마다 혼잣말과 효과가 달라요. 직접 그려 넣을 수도 있고, 남이 보내 준 캐릭터(zip, 폴더, PNG)는 펫 위에 끌어 놓으면 바로 깔려요. [CHARACTERS.ko.md](CHARACTERS.ko.md)를 보세요.

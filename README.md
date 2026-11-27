@@ -57,7 +57,9 @@ Clicking the pet marks everything as seen. A finished session keeps its "done" s
   | Terminal | The exact tab (AppleScript, asks for Automation permission once) |
   | iTerm2 | The exact session (AppleScript, asks for Automation permission once) |
   | [Ghostty](https://ghostty.org) 1.4+ | The exact tab or split (AppleScript, asks for Automation permission once) |
-  | Anything else (WezTerm, kitty, VS Code, tmux inside any terminal, …) | Brings the app to the front |
+  | [WezTerm](https://wezterm.org) | The exact tab or split (via the wezterm CLI) |
+  | tmux, inside any of the above | The exact tmux window and pane, then that terminal's tab. If no terminal shows that tmux session, the last-used one switches to it |
+  | Anything else (kitty, VS Code, …) | Brings the app to the front |
 
   You can replace this with your own command per agent (see [Configuration](#configuration)).
 - **Characters.** Six original pixel characters (Dumpling, Acorn, Sprout, Cloud, Candle, Pebble), each with its own lines and effects. Draw your own, or drop a character someone sent you (a zip, folder or PNG) on the pet to install it: see [CHARACTERS.md](CHARACTERS.md).

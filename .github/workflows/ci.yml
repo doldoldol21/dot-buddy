@@ -20,6 +20,9 @@ jobs:
       - name: Build
         run: APP="$RUNNER_TEMP/Dot.app" FORCE=1 ./build.sh
 
+      - name: tmux for the pane test
+        run: command -v tmux || HOMEBREW_NO_AUTO_UPDATE=1 brew install tmux
+
       - name: Self-test
         run: python3 selftest.py
 

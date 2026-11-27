@@ -209,6 +209,17 @@ with tempfile.TemporaryDirectory() as td:
     os.remove(mark)
     subprocess.run([BIN, "--open", "0", "", "signal:1"], capture_output=True, timeout=10, env={**os.environ, "DOTBUDDY_TOOLS": tf})
     check("가는 곳 — 바깥 신호 알림은 명령을 안 돌림", os.path.exists(mark), False)
+# inside tmux: the pane is found by its tty (a private tmux server; skipped where tmux isn't installed)
+TMUX = next((p for p in ("/opt/homebrew/bin/tmux", "/usr/local/bin/tmux", "/usr/bin/tmux") if os.path.exists(p)), None)
+if TMUX:
+    with tempfile.TemporaryDirectory() as td:
+        env = {k: v for k, v in os.environ.items() if k != "TMUX"}; env["TMUX_TMPDIR"] = td
+        subprocess.run([TMUX, "new-session", "-d", "-s", "t", "-n", "a"], env=env, check=True, timeout=10)
+        subprocess.run([TMUX, "new-window", "-t", "t", "-n", "b"], env=env, check=True, timeout=10)
+        rows = subprocess.run([TMUX, "list-panes", "-a", "-F", "#{pane_pid} #{window_id}#{pane_id} #{pane_tty}"], env=env, capture_output=True, text=True, timeout=10).stdout.split()
+        w = json.loads(subprocess.run([BIN, "--where", rows[3]], capture_output=True, text=True, timeout=10, env=env).stdout)
+        check("가는 곳 — tmux pane", (w["tmux"], w["tty"]), (rows[4], rows[5]))
+        subprocess.run([TMUX, "kill-server"], env=env, capture_output=True, timeout=10)
 # gesture signals from other agents: unknown names are refused (valid names would reach the real app, so they are not sent here)
 check("몸짓 신호 — 모르는 이름 거절", subprocess.run([BIN, "--signal", "event", "dance"], capture_output=True, timeout=10).returncode, 2)
 check("몸짓 신호 — 빈 이름 거절", subprocess.run([BIN, "--signal", "event"], capture_output=True, timeout=10).returncode, 2)

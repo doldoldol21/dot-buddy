@@ -7,7 +7,8 @@ import ServiceManagement
 // Clicking a notification goes to the terminal the session is running in. Order:
 //   (1) the "open" command in tools.json (per tool, or "*" for all) — the user can attach any terminal
 //   (2) find the app that launched the session process (walking up the parents; if that fails, the 'responsible app' macOS knows) and pick its tab
-//       — cmux (CLI), Terminal, iTerm2 and Ghostty (AppleScript, found by tty). An app with no way to pick a tab is only brought to the front
+//       — cmux and WezTerm (CLI), Terminal, iTerm2 and Ghostty (AppleScript, found by tty). An app with no way to pick a tab is only brought to the front
+//       — inside tmux, the pane is picked with tmux first, then the terminal tab that shows that tmux session
 // Reads the tty and parents with libproc, without any external program (does not spawn ps).
 /// Run one external command — killed after timeout seconds if it hangs (so a stuck cmux or osascript cannot stop the notification from ever showing)
 func run(_ exe: String, _ args: [String], timeout: Double = 4) -> Data? {
@@ -68,9 +69,37 @@ let TAB_PICKERS: [String: (NSRunningApplication, String) -> Bool] = [
                                           "if tty of t is item 1 of argv then", "set selected of t to true", "set index of w to 1", "return \"ok\"", "end if", "end repeat", "end repeat", "end tell"], tty) },
   "com.googlecode.iterm2": { _, tty in osa(["tell application id \"com.googlecode.iterm2\"", "repeat with w in windows", "repeat with t in tabs of w", "repeat with s in sessions of t",
                                              "if tty of s is item 1 of argv then", "select w", "select t", "select s", "return \"ok\"", "end if", "end repeat", "end repeat", "end repeat", "end tell"], tty) },
+  "com.github.wez.wezterm": { app, tty in weztermFocus(app, tty: tty) },
   "com.mitchellh.ghostty": { _, tty in osa(["tell application id \"com.mitchellh.ghostty\"", "repeat with t in terminals",                 // Ghostty 1.4+ (AppleScript); focus selects the tab too
                                              "if tty of t is item 1 of argv then", "focus t", "return \"ok\"", "end if", "end repeat", "end tell"], tty) },
 ]
+/// Same terminal device, whether or not the path starts with /dev/ (an empty one matches nothing)
+func sameTTY(_ a: String, _ b: String) -> Bool { !a.isEmpty && !b.isEmpty && (a as NSString).lastPathComponent == (b as NSString).lastPathComponent }
+/// WezTerm: its CLI lists every pane with its tty, and activate-pane also switches to that pane's tab and window
+func weztermFocus(_ app: NSRunningApplication, tty: String) -> Bool {
+  guard let cli = [app.bundleURL?.appendingPathComponent("Contents/MacOS/wezterm").path, "/opt/homebrew/bin/wezterm", "/usr/local/bin/wezterm"].compactMap({ $0 }).first(where: { FileManager.default.isExecutableFile(atPath: $0) }),
+        let d = run(cli, ["cli", "list", "--format", "json"]), let panes = try? JSONSerialization.jsonObject(with: d) as? [[String: Any]],
+        let id = panes.first(where: { sameTTY($0["tty_name"] as? String ?? "", tty) })?["pane_id"] as? Int else { return false }
+  return run(cli, ["cli", "activate-pane", "--pane-id", "\(id)"]) != nil
+}
+/// A session inside tmux runs on a tmux pane's tty, not on a terminal tab's. Find that pane and the terminal showing it:
+/// the client that used that tmux session last, or if none is attached, the client used last (which gets switched over to it)
+struct TmuxPane { var exe = "", session = "", window = "", pane = "", client = "", clientPid: Int32 = 0, attached = false }
+func tmuxPane(tty: String) -> TmuxPane? {
+  guard let exe = ["/opt/homebrew/bin/tmux", "/usr/local/bin/tmux", "/usr/bin/tmux"].first(where: { FileManager.default.isExecutableFile(atPath: $0) }),
+        let d = run(exe, ["list-panes", "-a", "-F", "#{pane_tty}\t#{session_id}\t#{window_id}\t#{pane_id}"]) else { return nil }   // no tmux server: fails, nil
+  func rows(_ d: Data) -> [[String]] { String(decoding: d, as: UTF8.self).split(separator: "\n").map { $0.components(separatedBy: "\t") } }
+  guard let r = rows(d).first(where: { $0.count == 4 && sameTTY($0[0], tty) }) else { return nil }
+  var t = TmuxPane(exe: exe, session: r[1], window: r[2], pane: r[3])
+  let cs = run(exe, ["list-clients", "-F", "#{client_activity}\t#{client_tty}\t#{client_pid}\t#{session_id}"]).map(rows)?.filter { $0.count == 4 } ?? []
+  let mine = cs.filter { $0[3] == t.session }
+  if let c = (mine.isEmpty ? cs : mine).max(by: { (Int($0[0]) ?? 0) < (Int($1[0]) ?? 0) }) { t.client = c[1]; t.clientPid = Int32(c[2]) ?? 0; t.attached = !mine.isEmpty }
+  return t
+}
+func tmuxFocus(_ t: TmuxPane) {
+  if !t.attached, !t.client.isEmpty { _ = run(t.exe, ["switch-client", "-c", t.client, "-t", t.session]) }
+  _ = run(t.exe, ["select-window", "-t", t.window]); _ = run(t.exe, ["select-pane", "-t", t.pane])
+}
 /// Run AppleScript through osascript (system default) — the tty is passed as an argument so it never gets mixed into the script text. The first run shows an 'allow control' dialog
 func osa(_ lines: [String], _ arg: String) -> Bool {
   let src = (["on run argv"] + lines + ["return \"\"", "end run"]).flatMap { ["-e", $0] }
@@ -113,14 +142,20 @@ func tabTitles(_ pids: [Int32]) -> [Int32: String] {
   return out
 }
 /// The route to this session — only says what it would do, without actually moving (for --where and tests)
-struct OpenPlan { var custom: [String]? = nil, app: NSRunningApplication? = nil, tty: String? = nil
+struct OpenPlan { var custom: [String]? = nil, app: NSRunningApplication? = nil, tty: String? = nil, tmux: TmuxPane? = nil
   var via: String { custom != nil ? "open" : app.map { tty != nil && TAB_PICKERS[$0.bundleIdentifier ?? ""] != nil ? "tab" : "app" } ?? "none" }
 }
-func openPlan(pid: Int32, id: String, tool: String, name: String) -> OpenPlan {
-  var p = OpenPlan(); p.tty = ttyPath(pid); p.app = pid > 0 ? ownerApp(pid) : nil
+/// tty: the one stored when the notice was made, used when the agent has quit since (its tab, and shell, is usually still there)
+func openPlan(pid: Int32, id: String, tool: String, name: String, tty: String? = nil) -> OpenPlan {
+  var p = OpenPlan(); p.tty = ttyPath(pid) ?? tty; p.app = pid > 0 ? ownerApp(pid) : nil
   if let cmd = toolStyle(tool).open ?? toolStyle("*").open, !cmd.isEmpty {
     let vals = ["pid": pid > 0 ? "\(pid)" : "", "tty": p.tty ?? "", "id": id, "tool": tool, "name": name, "app": p.app?.bundleIdentifier ?? ""]
     p.custom = cmd.map { fillSlots($0, vals) }
+  }
+  if p.custom == nil, let t = p.tty, let x = tmuxPane(tty: t) {                  // inside tmux: the tab to pick is the terminal's that shows it, and so is the app
+    p.tmux = x
+    if !x.client.isEmpty { p.tty = x.client }
+    if x.clientPid > 0, let a = ownerApp(x.clientPid) { p.app = a }
   }
   return p
 }
@@ -137,10 +172,10 @@ func fillSlots(_ a: String, _ vals: [String: String]) -> String {
 /// Go to the session of the clicked notification (called from outside the main thread — osascript and cmux can be slow)
 func openSession(pid: Int32, id: String, tool: String, name: String, tty: String? = nil, app: String? = nil) {
   guard !id.hasPrefix("signal:") else { return }                              // a notification shown for an outside signal (--signal) can be sent by anyone, so it does not run commands
-  var p = openPlan(pid: pid, id: id, tool: tool, name: name)
-  if p.tty == nil { p.tty = tty }                                                 // the agent quit after the notice appeared: its tab (and shell) is usually still there
+  var p = openPlan(pid: pid, id: id, tool: tool, name: name, tty: tty)
   if p.app == nil, let b = app { p.app = NSRunningApplication.runningApplications(withBundleIdentifier: b).first }
   if let c = p.custom, run("/usr/bin/env", c, timeout: 15) != nil { return }                 // user command: if it fails, fall back to the default route
+  if let t = p.tmux { tmuxFocus(t) }                                             // pick the pane inside tmux first, then the terminal tab showing it
   guard let app = p.app else { return }
   if let tty = p.tty, let pick = TAB_PICKERS[app.bundleIdentifier ?? ""] { _ = pick(app, tty) }
   if let u = app.bundleURL { let c = NSWorkspace.OpenConfiguration(); c.activates = true; NSWorkspace.shared.openApplication(at: u, configuration: c) }   // bring the already running app to the front
