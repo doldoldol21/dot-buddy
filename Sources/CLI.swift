@@ -28,7 +28,7 @@ func runHook(_ args: [String]) -> Never {
   let tool = args[0], key = args[1], action = args[2], reply = args.count >= 4 ? args[3] : ""
   let input = FileHandle.standardInput.readDataToEndOfFile()
   let j = try? JSONSerialization.jsonObject(with: input, options: [.fragmentsAllowed])
-  let me = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath().path
+  let me = (Bundle.main.executableURL ?? URL(fileURLWithPath: CommandLine.arguments[0])).resolvingSymlinksInPath().path   // argv[0] is a bare name when run from PATH
   func call(_ a: [String]) {
     let p = Process(); p.executableURL = URL(fileURLWithPath: me); p.arguments = a
     p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice

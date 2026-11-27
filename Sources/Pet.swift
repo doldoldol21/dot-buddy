@@ -120,7 +120,7 @@ final class Pet: NSObject, NSMenuDelegate {
   var strokes: [Double] = [], strokeX: CGFloat = 0, strokeDir = 0, pettedUntil = 0.0, petStart = 0.0
   var lastMouse = CGPoint.zero, mouseStill = 0.0, mouseNear = false, nextPounce = 0.0, pounceBoost: CGFloat = 0
   var liftSaid = false, liftCtx = Ctx(), dropSaid = false
-  var away = false, lastIdleCheck = 0.0, grabT = 0.0, carriedSaid = false, awayDone = 0
+  var away = false, welcomeDue = false, lastIdleCheck = 0.0, grabT = 0.0, carriedSaid = false, awayDone = 0
   var climbFrom: CGFloat?, climbRestAt = CGFloat.infinity, climbRestUntil = 0.0, nextGoal: String?, nextGoalDive = true
   var nextFollow = 0.0, lastFidgetQ = false, lastHourSaid = -1
   var propHourAt = -99.0, santaOn = false, snowOn = false, partyOn = false
@@ -396,7 +396,7 @@ final class Pet: NSObject, NSMenuDelegate {
     var worked: [String: Double] = [:]
     for s in fresh { if let w0 = workStart[s.id] { worked[s.id] = wall - w0 } }
     for s in list where s.mood == .work && workStart[s.id] == nil { workStart[s.id] = wall }
-    let workingIDs = Set(list.filter { $0.mood == .work }.map(\.id)); workStart = workStart.filter { workingIDs.contains($0.key) }
+    let workingIDs = Set(list.filter { $0.mood == .work || $0.mood == .ask }.map(\.id)); workStart = workStart.filter { workingIDs.contains($0.key) }   // a question in the middle doesn't restart the clock
     let busy = list.filter { $0.mood == .work }, tools = Set(busy.map(\.tool))
     praiseSessions(busy.count, tool: tools.count == 1 ? tools.first! : nil, label: tools.count == 1 ? busy[0].label : T("에이전트", "agent"))   // If several agents are mixed, "5 agents"
     if !fresh.isEmpty { cheerUntil = now + 2.5; if away { awayDone += fresh.count } }
@@ -410,18 +410,22 @@ final class Pet: NSObject, NSMenuDelegate {
       let pids = fresh.filter(\.derived).map(\.pid)
       DispatchQueue.global(qos: .utility).async { [weak self] in                   // ps and cmux can be slow, so run them off main
         let titles = tabTitles(pids)
+        var routes: [Int32: (String?, String?)] = [:]
+        for s in fresh where s.pid > 0 { routes[s.pid] = (ttyPath(s.pid), ownerApp(s.pid)?.bundleIdentifier) }
         DispatchQueue.main.async {
           guard let self else { return }
           let still = Set(self.list.filter { $0.mood >= .wait }.map(\.id))
           for s in fresh where still.contains(s.id) && !([self.showing].compactMap { $0 } + self.notices).contains(where: { $0.id == s.id && $0.ask == (s.mood == .ask) }) {   // a slow tab lookup can overlap the next poll's; queue each question or "done" once
             let others = still.subtracting(self.acked).subtracting([s.id]).count
-            self.notices.append(Notice(pid: s.pid, id: s.id, title: s.derived ? (titles[s.pid] ?? s.name) : s.name, ask: s.mood == .ask, worked: worked[s.id], others: others, tool: s.tool))
+            self.notices.append(Notice(pid: s.pid, id: s.id, title: s.derived ? (titles[s.pid] ?? s.name) : s.name, ask: s.mood == .ask, worked: worked[s.id], others: others, tool: s.tool, tty: routes[s.pid]?.0, app: routes[s.pid]?.1))
           }
         }
       }
     }
-    notices.removeAll { !waiting.contains($0.id) && !$0.id.hasPrefix("signal:") }   // No need to announce a session that went back to work (signal notifications are not sessions, so they stay as is)
-    if let n = showing, (!waiting.contains(n.id) && !n.id.hasPrefix("signal:")) || (n.ask && answered.contains(n.id)) { hideNotice() }
+    let back = Set(list.filter { $0.mood == .work }.map(\.id)), present = Set(list.map(\.id))
+    let stale = { (n: Notice) in !n.id.hasPrefix("signal:") && n.members.allSatisfy { back.contains($0) || !present.contains($0) } }
+    notices.removeAll(where: stale)                                               // No need to announce a session that went back to work or closed (one that just cooled down from "done" to resting while you were away still gets its turn; signal notifications are not sessions, so they stay)
+    if let n = showing, stale(n) || (n.ask && answered.contains(n.id)) { hideNotice() }
     polledOnce = true
     prevWaiting = waiting; prevAsking = Set(list.filter { $0.mood == .ask }.map(\.id))
     applyMood(wasTop: wasTop)
@@ -965,6 +969,7 @@ final class Pet: NSObject, NSMenuDelegate {
       schedule(min(5, max(0.5, snoozeUntil - t))); return
     }
     if snoozed { snoozed = false; window.orderFrontRegardless(); applyLevel(); cheerUntil = t + 1.5; say(T("나 왔어!", "I'm back!"), t) }
+    if menuOpen { lastTick = t; schedule(0.25); return }                            // Menu open: the timer still fires while it tracks; stand still (no following the cursor onto the menu, no new moods)
     if resting {                                                                    // Locked or displays asleep: no drawing, no window scans; sessions still arrive by file events, with the slow backup poll
       stepAway(t)
       if t - lastPoll > 30 { poll() }
@@ -1251,7 +1256,8 @@ final class Pet: NSObject, NSMenuDelegate {
       if floor == nil { act = .fall } else if t > actUntil { decide() }
     case .sleep:
       if floor == nil { act = .fall }
-    case .drag: break
+    case .drag:                                                                    // the mouse-up can get lost (locked mid-drag, Mission Control, a menu): let go once the button has been up a moment
+      if NSEvent.pressedMouseButtons & 1 == 0 { if dragUpAt == 0 { dragUpAt = t } else if t - dragUpAt > 0.3 { dragUpAt = 0; release() } } else { dragUpAt = 0 }
     case let .react(_, t0, dur):
       if floor == nil { act = .fall } else if t - t0 > dur { if poutNext { pout() } else { decide() } }
     }
@@ -1415,11 +1421,12 @@ final class Pet: NSObject, NSMenuDelegate {
       say(any(T(["땡! \(hourName(hh))예요", "\(hourName(hh)) 정각!", "벌써 \(hourName(hh))!", "\(hourName(hh))이에요~ 쉬엄쉬엄"], ["Ding! It's \(hEn)!", "\(hEn) on the dot!", "It's \(hEn) already!", "It's \(hEn). Take it easy~"])), t)
       if floor != nil, !uninterruptible { act = .react(.hop, t, 0.7) }
     }
-    if idle > 300 { away = true }
-    else if away && idle < 4 {
-      away = false
-      defer { awayDone = 0; missedBanners = 0 }
+    if idle > 300 { away = true; welcomeDue = false }
+    else if away && idle < 4 { away = false; welcomeDue = true }
+    if welcomeDue, !away {                                                          // greet once it is free (mid-jump or climbing, it waits for the next check instead of dropping the "N finished" line)
       guard floor != nil, !uninterruptible else { return }
+      welcomeDue = false
+      defer { awayDone = 0; missedBanners = 0 }
       act = .react(.wave, t, 1.8)
       if chatty > 0, showing == nil { say(line(.welcome, ctx), t); UD.set(Date().timeIntervalSince1970, forKey: "lastWelcome") }
     }
@@ -1704,7 +1711,7 @@ final class Pet: NSObject, NSMenuDelegate {
     let p = pose(t)
     var q = p                                                                    // Compare continuous values in frame units (same image is not redrawn)
     q.z = (p.z * 20).rounded(.down); q.sparkle = (p.sparkle * 20).rounded(.down); q.hearts = (p.hearts * 30).rounded(.down); q.notes = (p.notes * 24).rounded(.down); q.snow = (p.snow * 45).rounded(.down)
-    q.snot = (p.snot * 12).rounded(.down); q.sweat = (p.sweat * 20).rounded(.down); q.dust = (p.dust * 10).rounded(.down); q.confetti = (p.confetti * 20).rounded(.down)
+    q.snot = (p.snot * 12).rounded(.down); q.sweat = (p.sweat * 20).rounded(.down); q.dust = (p.dust * 10).rounded(.down); q.confetti = (p.confetti * 20).rounded(.down); q.fxK = (p.fxK * 20).rounded(.down)
     stepBadge(p)
     if q != lastPose || chara.id != lastChara || lastKey.isEmpty {
       if chara.id != lastChara || lastKey.isEmpty { drawCache.removeAll() }                 // Cleared when the character or size changes
@@ -1788,7 +1795,7 @@ final class Pet: NSObject, NSMenuDelegate {
   // Notification bubbles: one at a time, disappearing after the set time. Clicking goes to that tab
   func stepNotice(_ t: Double) {
     if let _ = showing, t > showUntil { hideNotice() }
-    if showing == nil, !notices.isEmpty, !(chatUntil > t && t < chatGate) {        // After the bubble on screen has filled its minimum time, one by one in turn
+    if showing == nil, !notices.isEmpty, !away, !(chatUntil > t && t < chatGate) {  // After the bubble on screen has filled its minimum time, one by one in turn (held while you are away, so they are there when you come back)
       let (n, rest) = mergeNotices(notices.removeFirst(), notices); notices = rest   // three or more finished at once: one bubble
       showing = n; showUntil = t + noticeSecs
       if prof { FileHandle.standardError.write("  bubble notice t=\(String(format: "%.2f", t)) \(n.title)\n".data(using: .utf8)!) }
@@ -1973,6 +1980,7 @@ final class Pet: NSObject, NSMenuDelegate {
   static let CHAT_MIN = 3.2
   var chatQueue: [(String, Double)] = [], chatShownAt = 0.0
   func say(_ text: String, _ t: Double) {
+    guard !snoozed else { return }                                                // hidden: a bubble with no pet under it
     lastChat = t
     if showing != nil || chatUntil > t && t < chatGate {          // The previous line hasn't been fully read yet or a completion bubble is up: queue it (so it isn't covered the moment it appears)
       if !chatQueue.contains(where: { $0.0 == text }) { chatQueue.append((text, t)); if chatQueue.count > 3 { chatQueue.removeFirst() } }
@@ -2037,12 +2045,12 @@ final class Pet: NSObject, NSMenuDelegate {
   func openNotice() {
     guard let n = showing else { return }
     hideNotice(); ack()
-    DispatchQueue.global().async { openSession(pid: n.pid, id: n.id, tool: n.tool, name: n.title) }
+    DispatchQueue.global().async { openSession(pid: n.pid, id: n.id, tool: n.openTool ?? n.tool, name: n.title, tty: n.tty, app: n.app) }
   }
 
   // Drag, throw, click
   var busy: Bool { switch act { case .react, .jump, .fall: return true; default: return false } }
-  var ignoring = false, grabPos = CGPoint.zero, grabFloor: String?, grabAct: Act = .stand
+  var ignoring = false, dragUpAt = 0.0, grabPos = CGPoint.zero, grabFloor: String?, grabAct: Act = .stand
   func grab(_ e: NSEvent) {
     let t0 = now
     clicks = clicks.filter { t0 - $0 < 1.6 } + [t0]
@@ -2100,8 +2108,8 @@ final class Pet: NSObject, NSMenuDelegate {
   /// Acknowledgment (clicking the pet): those sessions stop the badge and nagging. If they go back to work and finish again, it notifies again
   func ack() {
     acked = Set(list.filter { $0.mood >= .wait }.map(\.id))
-    notices.removeAll { acked.contains($0.id) }
-    if let n = showing, acked.contains(n.id) { hideNotice() }
+    notices.removeAll { !$0.id.hasPrefix("signal:") }                           // seen: queued ones (including those that cooled down while you were away) go too
+    if let n = showing, !n.id.hasPrefix("signal:") { hideNotice() }
     applyMood()
   }
   /// Left click: reaction only, no menu (with many sessions open, the list itself is noise)
@@ -2189,6 +2197,7 @@ final class Pet: NSObject, NSMenuDelegate {
     NSApp.activate(ignoringOtherApps: true)
     let hold = floor != nil && { if case .sleep = act { return false } else if case .work = act { return false } else { return true } }()
     if hold { act = .stand; actUntil = now + 3600 }                                // Stays put under its menu (it used to walk off with the menu left behind)
+    menuOpen = true; defer { menuOpen = false; lastTick = now }
     menu.popUp(positioning: nil, at: NSPoint(x: view.bounds.midX, y: CGFloat(CH - lastCanvas.top) * ds), in: view)   // returns when the menu closes
     if hold, case .stand = act { actUntil = now + 0.6 }
   }
@@ -2241,7 +2250,7 @@ final class Pet: NSObject, NSMenuDelegate {
     if prof { FileHandle.standardError.write("  done-today \(c + n)\n".data(using: .utf8)!) }
   }
   // ---------- Hide for a while ----------
-  var snoozeUntil = 0.0, snoozed = false
+  var snoozeUntil = 0.0, snoozed = false, menuOpen = false
   @objc func snooze(_ it: NSMenuItem) {
     guard let mins = it.representedObject as? Double else { return }
     snoozeUntil = now + mins * 60; snoozed = true; hideNotice(); chatUntil = 0

@@ -135,9 +135,11 @@ func fillSlots(_ a: String, _ vals: [String: String]) -> String {
   return out + rest
 }
 /// Go to the session of the clicked notification (called from outside the main thread — osascript and cmux can be slow)
-func openSession(pid: Int32, id: String, tool: String, name: String) {
+func openSession(pid: Int32, id: String, tool: String, name: String, tty: String? = nil, app: String? = nil) {
   guard !id.hasPrefix("signal:") else { return }                              // a notification shown for an outside signal (--signal) can be sent by anyone, so it does not run commands
-  let p = openPlan(pid: pid, id: id, tool: tool, name: name)
+  var p = openPlan(pid: pid, id: id, tool: tool, name: name)
+  if p.tty == nil { p.tty = tty }                                                 // the agent quit after the notice appeared: its tab (and shell) is usually still there
+  if p.app == nil, let b = app { p.app = NSRunningApplication.runningApplications(withBundleIdentifier: b).first }
   if let c = p.custom, run("/usr/bin/env", c, timeout: 15) != nil { return }                 // user command: if it fails, fall back to the default route
   guard let app = p.app else { return }
   if let tty = p.tty, let pick = TAB_PICKERS[app.bundleIdentifier ?? ""] { _ = pick(app, tty) }

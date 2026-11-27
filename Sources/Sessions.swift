@@ -143,7 +143,8 @@ final class Sessions: SessionSource {   // Claude Code
       }
       guard let x = r, x.interactive, alive(x.pid, before: x.started) else { continue }   // dropped if the pid has been reused by another process
       let idle = now - x.at                                                       // after finishing, wait 5 minutes for the user to check, then just play until 20 minutes (so it does not keep nagging)
-      var mood: Mood = x.status == "idle" ? (idle < 5 * 60 ? .wait : idle < 20 * 60 ? .free : .sleep) : .work
+      let untouched = x.status == "idle" && x.started > 0 && x.at - x.started < 3          // Claude writes "idle" as it starts: a session nobody has used yet is not a "done"
+      var mood: Mood = x.status == "idle" ? (idle < 5 * 60 && !untouched ? .wait : idle < 20 * 60 ? .free : .sleep) : .work
       if mood == .work && pendingAsk(x.sid) { mood = .ask }
       lastMood[key] = mood
       out.append(Sess(pid: x.pid, id: x.sid, name: x.name, mood: mood, since: x.at, derived: x.derived))

@@ -72,6 +72,13 @@ try:
         mood, m = state(root)
         check("shell·sdk", (mood, "막 끝남" in m, m["질문"]), ("work", False, "work"))
 
+        # Claude writes "idle" the moment a session starts: one nobody has used yet is resting, not "done" (it used to fire a done notice)
+        sess(os.getppid(), "g", "막 켬", "idle", 0.01, started=now - 700, file="g")
+        sess(os.getppid(), "h", "일하고 끝남", "idle", 0.01, file="h")
+        mood, m = state(root)
+        check("막 켠 세션은 끝남이 아님", (m.get("막 켬"), m.get("일하고 끝남")), ("free", "wait"))
+        os.remove(os.path.join(sd, "g.json")); os.remove(os.path.join(sd, "h.json"))
+
         # other agents: sessions reported with --report are picked up too (tool, displayed name, whether the pid is alive)
         check("report — 잘못된 상태는 거절", report(root, "codex", "x1", "napping"), 2)
         report(root, "codex", "x1", "ask", "--name", "코덱스 질문", "--label", "코덱스", "--pid", str(sleeper.pid))
@@ -291,6 +298,7 @@ check("notices — two stay separate", merged("a,b"), ["a", "b"])
 check("notices — four merge", merged("a,b,c,d"), ["4 done: a, b, c…", ""])
 check("notices — questions not merged", merged("a,q?,b,c"), ["3 done: a, b, c", "q"])
 check("notices — a question first is shown alone", merged("q?,a,b"), ["q", "a,b"])
+check("notices — outside signals stay apart", merged("a,signal:1,b,c"), ["3 done: a, b, c", "signal:1"])
 
 # Updater: version order, and a signature that doesn't match is refused (the real key only lives in CI)
 def run_ok(*args):

@@ -99,17 +99,21 @@ func noticeImage(_ lines: [(String, CGColor)], fill: CGColor, edge: CGColor, sid
   return c.makeImage()
 }
 struct BubbleSpec { var lines: [(String, CGColor)], fill: CGColor, edge: CGColor, side = 0, check = false, reveal = Int.max, tail = 0 }   // Text and colors used to redraw the bubble
-struct Notice { let pid: Int32, id: String, title: String, ask: Bool; var worked: Double? = nil; var others = 0; var tool = "" }   // tool: which agent the notice is from (for decoration)
+struct Notice { let pid: Int32, id: String, title: String, ask: Bool; var worked: Double? = nil; var others = 0; var tool = ""   // tool: which agent the notice is from (for decoration)
+  var ids: [String] = [], openTool: String? = nil, tty: String? = nil, app: String? = nil   // merged bubble: every session in it, and the tool to open the first with; tty/app as seen when the notice was made (used if the agent has quit by the time it is clicked)
+  var members: [String] { ids.isEmpty ? [id] : ids }
+}
 /// Last line of a notice, chosen to fit the intent: for a question, a phrase saying it waits for an answer; when done, a phrase matching the elapsed time, time of day and backlog count
 /// The next notice to show and what stays queued. Three or more "done" notices at once become one bubble ("4 done: a, b, c…")
 /// instead of a 10-second queue each; questions are never merged. Clicking the merged bubble goes to the first session
 func mergeNotices(_ first: Notice, _ rest: [Notice]) -> (Notice, [Notice]) {
-  guard !first.ask, rest.filter({ !$0.ask }).count >= 2 else { return (first, rest) }
-  let dones = [first] + rest.filter { !$0.ask }
+  let session = { (n: Notice) in !n.ask && !n.id.hasPrefix("signal:") }               // outside signals stay on their own (clicking them does nothing)
+  guard session(first), rest.filter(session).count >= 2 else { return (first, rest) }
+  let dones = [first] + rest.filter(session)
   let names = dones.map(\.title), shown = names.prefix(3).joined(separator: ", ") + (names.count > 3 ? "…" : "")
   let merged = Notice(pid: first.pid, id: first.id, title: T("\(names.count)곳 끝남: ", "\(names.count) done: ") + shown, ask: false, worked: nil, others: 0,
-                      tool: Set(dones.map(\.tool)).count == 1 ? first.tool : "")
-  return (merged, rest.filter(\.ask))
+                      tool: Set(dones.map(\.tool)).count == 1 ? first.tool : "", ids: dones.flatMap(\.members), openTool: first.openTool ?? first.tool, tty: first.tty, app: first.app)
+  return (merged, rest.filter { !session($0) })
 }
 func doneLine(_ n: Notice, hour h: Int = Calendar.current.component(.hour, from: Date())) -> String {
   func any(_ a: [String]) -> String {
