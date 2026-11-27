@@ -36,7 +36,7 @@ One pet shows the most urgent state across all sessions.
 
 | State | When | What you see |
 |---|---|---|
-| Question | A session is waiting for your answer | `?` bubble, the pet waves at you |
+| Question | A session is waiting for your answer | `?` bubble, the pet waves at you. Left unanswered for 45 seconds, it comes over to your cursor (even on another monitor) and calls you, up to 3 times |
 | Done | A session finished and you haven't looked yet | "Done!" bubble with the session name, a ✓ badge with the count |
 | Busy | At least one session is working | Laptop out, typing; small reactions to reads, edits, tests and commits |
 | Many sessions | Several sessions running at once | It cheers you on (and remembers today's record) |

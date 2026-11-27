@@ -627,6 +627,7 @@ final class Pet: NSObject, NSMenuDelegate {
     guard let here = floor else { act = .fall; return }
     let t = now, r = Double.random(in: 0...1)
     if let g = nextGoal { nextGoal = nil; if let f = floors.first(where: { $0.id == g }), goVia(f, dive: nextGoalDive) { return } }   // Next step on the stepping stones
+    if calling, mood == .ask, callStep(t) { return }                              // on the way to the cursor to call about a question
     let widgets = nearMe(floors.filter(\.widget))                             // Visible widget or window top edge, starting with the screen the user is looking at
     humming = false
     // After playing up high for a while, go down (about half up, half down): walk to the nearest real corner and hop down. If it lands on another window, it goes down again next time
@@ -816,7 +817,7 @@ final class Pet: NSObject, NSMenuDelegate {
     let busy: Bool = { switch act { case .walkOff, .walkTo: return false; default: return uninterruptible } }()   // If walking (going to step down or to climb), stop and go
     if floor == nil || busy { if t > at + 4 { frontJump = nil }; return }   // Go after the current action (jump, stepping down) finishes; wait up to 4 seconds
     frontJump = nil
-    guard t > nextFrontJump, mood != .sleep, !screenLocked, Double.random(in: 0...1) < 0.6 else { return }
+    guard t > nextFrontJump, !calling, mood != .sleep, !screenLocked, Double.random(in: 0...1) < 0.6 else { return }
     let owner = "w\(num)"
     if floor?.owner == owner { return }                                             // Already on that window
     let m = NSEvent.mouseLocation
@@ -827,12 +828,47 @@ final class Pet: NSObject, NSMenuDelegate {
     nextFrontJump = t + .random(in: 25...50)
     if chatty >= 2, showing == nil, t - lastChat > 5, Bool.random() { say(any(T(["나도 볼래!", "이 창이구나!", "같이 보자~", "여기 재밌어 보여!", "기다려 나도 갈래!"], ["Let me see too!", "Oh, this window!", "Let's look together~", "This looks fun!", "Wait, I'm coming!"])), t) }
   }
+  /// A question nobody answers: after a while, come over to the cursor (another monitor too) and wave.
+  /// At most 3 calls a question, 90 seconds apart; not while away or locked. Clicking the pet (ack) ends the question for it, so the calls stop too
+  var askSince = 0.0, nextCall = 0.0, calls = 0, calling = false, callUntil = 0.0
+  var callAfter: Double { prof ? 8 : 45 }
+  func stepCall(_ t: Double) {
+    guard mood == .ask else { askSince = 0; calls = 0; calling = false; return }
+    if askSince == 0 { askSince = t; nextCall = t + callAfter }
+    if calling, t > callUntil { calling = false }                                   // couldn't get there in time: give up on this call
+    guard !calling, calls < 3, t >= nextCall, !away, !screenLocked, t >= graceUntil, floor != nil, !uninterruptible else { return }
+    nextCall = t + 90; calls += 1; calling = true; callUntil = t + 25
+    if prof { FileHandle.standardError.write("  CALL \(calls) after \(Int(t - askSince))s\n".data(using: .utf8)!) }
+    decide()
+  }
+  /// One leg of the trip to the cursor: the floor right under it on the cursor's screen (walk, jump, or dive to another monitor), then trot over and wave
+  func callStep(_ t: Double) -> Bool {
+    let m = NSEvent.mouseLocation
+    guard let here = floor, let ms = screenFrames.firstIndex(where: { $0.contains(m) }) else { calling = false; return false }
+    let gap = { (f: Floor) -> CGFloat in hypot(min(max(m.x, f.x0 + self.halfW), f.x1 - self.halfW) - m.x, (m.y - f.y) * 0.6) }
+    let spots = floors.filter { screenIdx(CGPoint(x: $0.mid, y: $0.y + 1)) == ms && !$0.id.hasSuffix(":x") && $0.y <= m.y + 10 && $0.x1 - $0.x0 >= halfW * 2 + 12 }
+    let mine = screenIdx(CGPoint(x: pos.x, y: pos.y + 1)) == ms && here.y <= m.y + 10
+    guard let g = spots.min(by: { gap($0) < gap($1) }) else { callArrive(t); return true }   // nothing to stand on near it (full-screen app): wave from here
+    if g.id != here.id, !(mine && gap(here) < gap(g) + 120), goVia(g) { return true }   // the floor it is on is about as close: stay on it
+    let side: CGFloat = m.x > pos.x ? -1 : 1
+    let tx = min(max(m.x + side * 34, here.x0 + halfW), here.x1 - halfW)
+    if abs(tx - pos.x) < 40 { callArrive(t) } else { act = .follow(tx); actUntil = t + 20 }
+    return true
+  }
+  func callArrive(_ t: Double) {
+    calling = false
+    act = .react(.wave, t, 1.8)
+    guard chatty > 0, showing == nil else { return }
+    let who = waitingAgent(ask: true), mins = Int((t - askSince) / 60)
+    say(any(mins >= 1 ? T(["여기요! \(ga(who)) 물어볼 게 있대요", "\(ga(who)) 대답을 기다린 지 \(mins)분 됐어요", "저기요~ \(ga(who)) 아직 기다려요"], ["Over here! \(who) has a question", "\(who) has been waiting \(mins) min", "Psst, \(who) is still waiting"])
+                      : T(["여기요! \(ga(who)) 물어볼 게 있대요", "저기요~ \(ga(who)) 대답을 기다려요"], ["Over here! \(who) has a question", "Psst, \(who) is waiting on you"])), t)
+  }
   func followScreen(_ t: Double) {
     guard t - lastScrCheck > 1 else { return }
     lastScrCheck = t
     let m = NSEvent.mouseLocation, ms = screenFrames.firstIndex { $0.contains(m) } ?? -1
     if ms != mouseScr { mouseScr = ms; mouseScrSince = t }
-    guard !screenLocked, t >= graceUntil, ms >= 0, screenIdx(pos) != ms, t - mouseScrSince > 12, t > nextMigrate, floor != nil, !uninterruptible, mood != .sleep || act.isAwake else { return }
+    guard !calling, !screenLocked, t >= graceUntil, ms >= 0, screenIdx(pos) != ms, t - mouseScrSince > 12, t > nextMigrate, floor != nil, !uninterruptible, mood != .sleep || act.isAwake else { return }
     nextMigrate = t + 30
     let cands = floors.filter { screenIdx(CGPoint(x: $0.mid, y: $0.y + 1)) == ms && !$0.id.hasSuffix(":x") }
     if let g = cands.min(by: { hypot($0.mid - m.x, ($0.y - m.y) * 0.6) < hypot($1.mid - m.x, ($1.y - m.y) * 0.6) }) { dive(to: g); migrating = true }
@@ -1028,6 +1064,7 @@ final class Pet: NSObject, NSMenuDelegate {
       if f.widget { if upSince == 0 { upSince = t; upLimit = .random(in: 30...80) } }
       else if upSince != 0 || downSince == 0 { upSince = 0; downSince = t }
     }
+    stepCall(t)
     followScreen(t)
     stepFrontJump(t)
     profile("away") { stepAway(t) }
@@ -1224,8 +1261,9 @@ final class Pet: NSObject, NSMenuDelegate {
     case let .follow(x):                                                             // Go in front of the cursor and look up
       guard let f = floor else { act = .fall; break }
       let tx = min(max(x, f.x0 + halfW), f.x1 - halfW), d = tx - pos.x
-      if abs(d) < 3 || t > actUntil { standLook = NSEvent.mouseLocation.x > pos.x ? 1 : -1; act = .stand; actUntil = t + 2.5 }
-      else { pos.x += (d > 0 ? 1 : -1) * min(abs(d), 46 * CGFloat(mdt)) }
+      if calling, abs(d) < 3 || t > actUntil { callArrive(t) }
+      else if abs(d) < 3 || t > actUntil { standLook = NSEvent.mouseLocation.x > pos.x ? 1 : -1; act = .stand; actUntil = t + 2.5 }
+      else { pos.x += (d > 0 ? 1 : -1) * min(abs(d), (calling ? 150 : 46) * CGFloat(mdt)) }   // hurries when calling
     case .stalk:                                                                     // Stalk, then pounce
       guard let f = floor else { act = .fall; break }
       if t > actUntil {
