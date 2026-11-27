@@ -203,7 +203,8 @@ private func runTool(_ path: String, _ args: [String]) -> String? {
 /// each file is capped by the shell's file-size limit (the unpacker is killed past it) and the whole folder is measured while it unpacks
 private func unzipCapped(_ zip: URL, to dst: URL, max: Int) -> Bool {
   let p = Process(); p.executableURL = URL(fileURLWithPath: "/bin/sh")
-  p.arguments = ["-c", "ulimit -f \(max / 512) && exec /usr/bin/ditto -x -k \"$1\" \"$2\"", "sh", zip.path, dst.path]   // paths as arguments, never in the script
+  // ulimit -f counts 1024-byte blocks in macOS /bin/sh (checked: a 2048 limit stopped ditto at 2 MB with SIGXFSZ)
+  p.arguments = ["-c", "ulimit -f \(max / 1024) && exec /usr/bin/ditto -x -k \"$1\" \"$2\"", "sh", zip.path, dst.path]   // paths as arguments, never in the script
   p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
   guard (try? p.run()) != nil else { return false }
   var over = false
@@ -235,7 +236,8 @@ func installDroppedChara(_ src: URL, dir: URL = CHARAS_DIR) -> Result<(String, S
     guard last.count >= 2, last[0] <= DROP_MAX_UNZIPPED, last[1] <= DROP_MAX_ZIP_FILES else { return .failure(.bad(T("zip 이 너무 커요", "the zip is too big"))) }
     guard let names = runTool("/usr/bin/unzip", ["-Z1", src.path]),
           !names.split(separator: "\n").contains(where: { $0.hasPrefix("/") || $0.split(separator: "/").contains("..") }) else { return .failure(.bad(T("zip 안 경로가 이상해요", "a path in the zip points outside it"))) }
-    let w = fm.temporaryDirectory.appendingPathComponent("dotbuddy-drop-\(UUID().uuidString)"); work = w
+    try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+    let w = dir.appendingPathComponent(".drop-\(UUID().uuidString)"); work = w   // hidden inside the characters folder (the loader skips it), like a gallery download
     guard unzipCapped(src, to: w, max: DROP_MAX_UNZIPPED) else { return .failure(.bad(T("zip 을 못 풀었거나 풀면 너무 커요", "can't unpack the zip, or it unpacks too big"))) }
     root = w
   } else if !isDir(src) && src.pathExtension.lowercased() != "png" {

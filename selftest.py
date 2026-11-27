@@ -406,14 +406,14 @@ with tempfile.TemporaryDirectory() as td:
         for sig, off in ((b"PK\x03\x04", 22), (b"PK\x01\x02", 24)):
             i = raw.find(sig); raw[i + off:i + off + 4] = struct.pack("<I", 100)
         open(bz, "wb").write(raw)
-        tmp = os.path.join(td, "tmp"); os.makedirs(tmp)
-        pr = subprocess.Popen([BIN, "--install-chara", bz], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=dict(os.environ, DOTBUDDY_CHARAS=ch, TMPDIR=tmp + "/"))
-        peak = 0
+        pr = subprocess.Popen([BIN, "--install-chara", bz], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=dict(os.environ, DOTBUDDY_CHARAS=ch))
+        peak = 0                                                                # it unpacks into a hidden .drop-… folder inside the characters folder
         while pr.poll() is None:
-            peak = max(peak, sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(tmp) for f in fs if os.path.isfile(os.path.join(d, f))))
+            try: peak = max(peak, sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(ch) for f in fs if os.path.isfile(os.path.join(d, f))))
+            except OSError: pass                                                # a file vanished while measuring
             time.sleep(0.03)
         pr.communicate(timeout=30)
-        check("받은 캐릭터 설치 — 크기를 속인 zip 은 풀다 멈춤", (pr.returncode, 1 << 20 < peak < 100 << 20, os.listdir(tmp), "bomb" in os.listdir(ch)), (1, True, [], False))
+        check("받은 캐릭터 설치 — 크기를 속인 zip 은 풀다 멈춤", (pr.returncode, 1 << 20 < peak < 100 << 20, sorted(os.listdir(ch))), (1, True, ["blob.png", "buddy"]))
 
 if fails:
     print("FAIL\n  " + "\n  ".join(fails))
