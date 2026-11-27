@@ -24,6 +24,8 @@ Dot Buddy lives on your desktop, walks along window edges and widgets, and watch
 - No network connections, except an opt-in daily update check against GitHub
 - English and Korean UI
 
+<p align="center"><a href="https://github.com/sponsors/doldoldol21"><img src="docs/media/sponsor.gif" width="560" alt="Sponsor Dot Buddy and get supporter-only characters"></a></p>
+
 ## What it reacts to
 
 <p align="center">

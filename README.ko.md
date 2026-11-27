@@ -20,6 +20,8 @@
 - 네트워크에 접속하지 않아요(켜 둔 경우의 하루 한 번 업데이트 확인만 빼고)
 - 화면 글은 한국어와 영어 두 가지예요
 
+<p align="center"><a href="https://github.com/sponsors/doldoldol21"><img src="docs/media/sponsor.ko.gif" width="560" alt="도트 친구를 후원하면 후원자 전용 캐릭터를 드려요"></a></p>
+
 ## 무엇에 반응하나요
 
 <p align="center">

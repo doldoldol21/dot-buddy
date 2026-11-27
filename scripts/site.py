@@ -128,6 +128,7 @@ footer {{ max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; border-top:
 {body}
 </main>
 <footer>{foot} <a href="https://github.com/{REPO}">github.com/{REPO}</a></footer>
+<script src="{prefix}docs/media/walker/walker.js" defer></script>
 </body>
 </html>
 """
